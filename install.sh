@@ -73,18 +73,33 @@ mkdir -p "${DATA_DIR}"
 info "同步 commands/ 到 ~/.claude/commands/(软链接)..."
 mkdir -p "${HOME}/.claude/commands"
 SYNC_COUNT=0
+SKIP_COUNT=0
 for cmd_file in "${SKILL_DIR}/commands/"*.md; do
     [ -f "$cmd_file" ] || continue
     cmd_name=$(basename "$cmd_file")
     link_path="${HOME}/.claude/commands/${cmd_name}"
-    # 如果已存在且不是软链接(可能是旧版本的复制品),先删除避免冲突
+
+    # 保护用户自定义命令:如果已存在真实文件(非 symlink),检查它是否是 ai-memory 的
+    # 通过判断文件 frontmatter 是否包含 "name: aim-" 来识别
     if [ -e "$link_path" ] && [ ! -L "$link_path" ]; then
-        rm -f "$link_path"
+        if grep -q "^name: aim-" "$link_path" 2>/dev/null; then
+            # 是 ai-memory 的旧复制品(可能是早期版本安装的),可以替换为软链接
+            rm -f "$link_path"
+        else
+            # 是用户自定义命令,保留不动
+            warn "跳过 ${cmd_name}:~/.claude/commands/${cmd_name} 是用户自定义命令,不覆盖"
+            SKIP_COUNT=$((SKIP_COUNT + 1))
+            continue
+        fi
     fi
+
     ln -sf "$cmd_file" "$link_path"
     SYNC_COUNT=$((SYNC_COUNT + 1))
 done
 info "已同步 ${SYNC_COUNT} 个命令到 ~/.claude/commands/"
+if [ "$SKIP_COUNT" -gt 0 ]; then
+    warn "${SKIP_COUNT} 个用户自定义命令被保留(未覆盖)"
+fi
 
 # 写入初始版本缓存(避免安装后立即提示"有新版本")
 SKILL_VERSION=$(grep -E '^version:' "${SKILL_DIR}/SKILL.md" 2>/dev/null | head -1 | sed 's/version: *//; s/[[:space:]]*$//')
