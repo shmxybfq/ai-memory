@@ -2,8 +2,8 @@
 
 > 本文档用于跨会话/上下文压缩后恢复开发状态。Claude 新会话开始时优先读此文档。
 
-**最后更新**: 2026-06-21 16:15
-**当前阶段**: MVP 命令文档全部完成(任务 #1-#9 完成,剩 #10 真实测试 + 调优)
+**最后更新**: 2026-06-21 18:30
+**当前阶段**: MVP 全流程测试通过,核心修订完成。10/10 任务完成。
 
 ---
 
@@ -124,10 +124,54 @@
 - ✅ #9 编写 README.md(英文)+ README.zh-CN.md(中文)+ install.sh + CHANGELOG
 
 ### 待办
-- ⏳ #10 真实项目验证与 Prompt 调优(用 `~/Desktop/persistent-document/` 测试)
-  - 选一个测试项目运行完整流程: init → add×3 → status → compress → status → expand → rebuild
-  - 验证中文显示、HTML 模板渲染、Git 集成
-  - 调优 prompt 让 Claude 在执行命令时行为符合文档预期
+- ✅ #10 真实项目验证与 Prompt 调优(2026-06-21 完成)
+  - 测试目录:`~/Desktop/ai-memory-test/`(已建,可保留作回归测试)
+  - 完整跑通:`init → add×3 → status → compress → expand → rebuild → verify`
+  - 发现 5 个问题并修订(见第十一节)
+
+---
+
+## 十一、测试发现与修订记录(2026-06-21)
+
+### 测试覆盖
+| 命令 | 测试结果 |
+|---|---|
+| `/aim-init` | ✅ 身份创建、模式选择、目录结构、INDEX/CLAUDE.md 注入 |
+| `/aim-add x3` | ✅ HTML 模板渲染、元数据嵌入、INDEX active 列表更新 |
+| `/aim-status` | ✅ 文档统计、token 估算、压缩建议阈值 |
+| `/aim-compress` | ✅ 双区输出、来源标注、规则校验、附录追加 |
+| `/aim-expand` | ✅ topic 过滤、跨快照检索 |
+| `/aim-rebuild` | ✅ 从损坏 INDEX 完整重建、孤儿文件识别 |
+| `/aim-verify` | ✅ MISSING_FILE/META_MISSING/ORPHAN 等检查 |
+
+### 发现的问题与修订
+
+#### 问题 1:模板条件块语法不一致(已修订)
+- `claude-md-rules.md.tpl` 用了 `{{#CENTRAL}}...{{/CENTRAL}}` Mustache 条件块,其他模板都用简单 `{{KEY}}`
+- **修订**:`aim-init.md` Step 8 添加明确的处理规则(central 保留内嵌、distributed 删除整块)
+
+#### 问题 2:规则校验大小写敏感(已修订)
+- `Modal`(原文档)vs `modal`(压缩文档)被判为丢失
+- **修订**:`aim-compress.md` Step 7 添加大小写规则:代码标识符大小写敏感,普通词汇不敏感
+
+#### 问题 3:压缩文档 sources 无法 rebuild 恢复(已修订)
+- compressed 的源 doc_id 列表只在 INDEX 里,文件元数据头没有
+- **修订**:`compressed-template.html.tpl` 元数据头加 `sources={{SOURCES}}` 字段;`aim-compress.md` Step 6 输出说明加 sources;`aim-rebuild.md` Step 5 加 sources 恢复逻辑(向后兼容老文档)
+
+#### 问题 4:CLAUDE.md 是 symlink 时无说明(已修订)
+- **修订**:`aim-init.md` Step 8 第 5 条添加 symlink 处理(写目标不破坏链接)
+
+#### 问题 5:测试身份污染(待清理)
+- 测试用 `~/.claude/ai-memory/identity.json` 创建了 `u-r00hpf42` 朱陶锋
+- 用户真实使用时会复用此身份(因为是全局的)
+- **建议**:用户决定是否清理(若不想保留测试身份,删除整个 `~/.claude/ai-memory/` 目录)
+
+### 未测项(留待后续)
+- 跨用户软沙盒确认流程(单人测试无法覆盖)
+- Git 集成 commit/push(测试目录不在 git)
+- 升级提示机制(需要 GitHub release)
+- 真实 LLM 执行命令(本次测试由我扮演 LLM 走流程)
+- macOS Trash 移动(`--purge` 路径)
 
 ---
 

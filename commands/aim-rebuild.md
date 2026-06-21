@@ -108,6 +108,26 @@ active: [<list from active bucket, sorted by created desc>]
 snapshots: [<list of {date, count, files} from snapshots bucket>]
 ```
 
+For each `compressed` entry, derive fields:
+
+```yaml
+- doc_id: "<from metadata>"
+  file: "<basename>"
+  title: "<from metadata>"
+  owner: "__project__"
+  created: "<from metadata>"
+  created_by: "<from metadata>"
+  created_by_name: "<resolve from identity.json>"
+  version: <from metadata, default 1>
+  tokens: <estimated>
+  sources_count: <count of sources list>
+  sources: [<split metadata 'sources' field by comma, e.g. "aim-xxx,aim-yyy" → ["aim-xxx", "aim-yyy"]>]
+  contributors:
+    - { user: "<created_by>", name: "<resolved>", last: "<created>" }
+```
+
+**If the compressed doc's metadata header has no `sources=` field** (older format from before this field was added): leave `sources: []` and note in output: `压缩文档 [xxx] 元数据缺 sources 字段,无法恢复源文档列表`。
+
 For each `active` entry, derive fields:
 
 ```yaml

@@ -141,6 +141,14 @@ This is the core step. Use the LLM (yourself) to consolidate.
 
 **Output**: a complete HTML document following the compressed template.
 
+**Metadata header must include `sources=` field** (critical for `/aim-rebuild`):
+
+```html
+<!-- aim:doc_id=aim-YYYYMMDD-xxxxxx title=项目压缩文档-PROJECT tags=compressed created=YYYY-MM-DD created_by=u-xxx owner=__project__ status=active source=compress version=1 sources=aim-yyy1,aim-yyy2,aim-yyy3 -->
+```
+
+The `sources=` value is a comma-separated list of all merged source doc_ids. This way `/aim-rebuild` can recover the source list from the metadata header alone, without parsing the body.
+
 ### Step 7: Rule-Based Verification
 
 After LLM generates the compressed doc, verify hard info is preserved.
@@ -153,6 +161,11 @@ For each source doc, extract via regex:
 - API names: `\b(GET|POST|PUT|DELETE)\b /[\w-/]+`
 
 Check that each extracted item appears in the compressed output.
+
+**Case sensitivity rules**:
+- Code identifiers (`Stack.Navigator`, `HMGET`, `jwt.sign`): **case-sensitive** — these are load-bearing and must match exactly.
+- Common words that happen to be Capitalized in prose (`Modal` vs `modal`, `Token` vs `token`): **case-insensitive match is OK** — don't add to appendix just because of case.
+- When unsure, prefer case-sensitive (safer). Appendix is cheap, information loss is expensive.
 
 **If any missing**:
 1. Flag the missing items.

@@ -186,18 +186,18 @@ Skip injection.
 1. Read template: `templates/claude-md-rules.md.tpl`
 2. Replace placeholders:
    - `{{GITHUB_USER}}` → `shmxybfq`
-   - `{{MODE}}` → MODE
-   - For central mode, include project mapping:
-     ```
-     {{#CENTRAL}}...{{PROJECT_MAPPING}}...{{/CENTRAL}}
-     ```
-   - Build `PROJECT_MAPPING` as a list under the root:
+   - `{{MODE}}` → MODE (central / distributed)
+3. Handle the conditional block `{{#CENTRAL}} ... {{/CENTRAL}}`:
+   - **Central mode**: replace the whole `{{#CENTRAL}}` and `{{/CENTRAL}}` marker lines with empty (keep the inner content). Then inside that block, replace `{{PROJECT_MAPPING}}` with a list of all projects under this root:
      ```
      - <SUBDIR_NAME> → <PROJECT_NAME>
      ```
      If other projects already exist in root (scan INDEX.yaml in sibling dirs), include them too.
-3. If CLAUDE.md doesn't exist, create it with the rules as the only content.
-4. If CLAUDE.md exists, append rules to the end with `\n\n` separator.
+   - **Distributed mode**: delete the entire block from `{{#CENTRAL}}` line through `{{/CENTRAL}}` line (inclusive).
+4. If CLAUDE.md doesn't exist, create it with the rules as the only content.
+5. If CLAUDE.md exists:
+   - If it's a regular file: append rules to the end with `\n\n` separator.
+   - If it's a **symlink**: resolve the symlink target, write to the target file (don't break the link). Warn user: `CLAUDE.md 是符号链接,已写入目标 [xxx],链接保持不变`。
 
 ### Step 9: Git Initialization (Optional)
 

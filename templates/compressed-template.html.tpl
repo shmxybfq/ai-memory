@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
-<!-- aim:doc_id={{DOC_ID}} title=项目压缩文档-{{PROJECT_NAME}} tags=compressed created={{CREATED}} created_by={{CREATED_BY}} owner=__project__ status=active source=compress version=1 -->
+<!-- aim:doc_id={{DOC_ID}} title=项目压缩文档-{{PROJECT_NAME}} tags=compressed created={{CREATED}} created_by={{CREATED_BY}} owner=__project__ status=active source=compress version=1 sources={{SOURCES}} -->
 <title>项目压缩文档 - {{PROJECT_NAME}}</title>
 <style>
   body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; max-width: 900px; margin: 0 auto; padding: 20px; line-height: 1.7; color: #333; }
