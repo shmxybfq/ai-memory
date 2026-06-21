@@ -37,7 +37,11 @@ git clone https://github.com/shmxybfq/ai-memory ~/.claude/skills/ai-memory
 curl -fsSL https://raw.githubusercontent.com/shmxybfq/ai-memory/main/install.sh | bash
 ```
 
+> **⚠️ 重要**:安装完成后,**重启 Claude Code**(或开启新会话)。Claude Code 仅在会话启动时扫描 `~/.claude/commands/`,新安装的 `/aim-*` 命令在已运行的会话中不可见。安装脚本会自动创建软链接,注册全部 14 个命令。
+
 ### 使用
+
+**前置条件**:安装后已重启 Claude Code(确保 `/aim-*` 命令已注册)。
 
 在任何需要持久记忆的项目里:
 

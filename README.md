@@ -37,7 +37,11 @@ Or with the install script:
 curl -fsSL https://raw.githubusercontent.com/shmxybfq/ai-memory/main/install.sh | bash
 ```
 
+> **⚠️ Important**: After install, **restart Claude Code** (or start a new session). Claude Code scans `~/.claude/commands/` only at session start, so newly installed `/aim-*` commands won't appear in an already-running session. The install script auto-creates symlinks to register all 14 commands.
+
 ### Use
+
+**Prerequisite**: Claude Code restarted after install (so `/aim-*` commands are registered).
 
 In any project where you want persistent memory:
 
