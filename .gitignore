@@ -1,0 +1,23 @@
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Test artifacts
+tests/output/
+tests/tmp/
+*.log
+
+# Local config (user-specific, not for git)
+.local/
+
+# Node (if we add tooling later)
+node_modules/
+package-lock.json
