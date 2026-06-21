@@ -1,24 +1,24 @@
 #!/usr/bin/env bash
 #
-# ai-memory install script
+# ai-memory 安装脚本
 #
-# Usage:
+# 用法:
 #   curl -fsSL https://raw.githubusercontent.com/shmxybfq/ai-memory/main/install.sh | bash
 #
-# Or clone first:
+# 或先 clone 再运行:
 #   git clone https://github.com/shmxybfq/ai-memory /tmp/ai-memory && /tmp/ai-memory/install.sh
 #
-# What it does:
-#   1. Clones (or updates) ai-memory to ~/.claude/skills/ai-memory
-#   2. Initializes ~/.claude/ai-memory/ for user data (identity, etc.)
-#   3. Prints next-step instructions
+# 本脚本会做:
+#   1. 把 ai-memory 克隆(或更新)到 ~/.claude/skills/ai-memory
+#   2. 初始化 ~/.claude/ai-memory/ 用于存放用户数据(identity 等)
+#   3. 打印下一步操作指引
 #
-# What it does NOT do:
-#   - Modify any existing CLAUDE.md
-#   - Create any project-level files
-#   - Send any telemetry
+# 本脚本不会做:
+#   - 修改任何已存在的 CLAUDE.md
+#   - 创建任何项目级文件
+#   - 发送任何遥测数据
 #
-# After install, run /aim-init inside any project to set it up.
+# 安装完成后,在任意项目中运行 /aim-init 完成初始化。
 
 set -e
 
@@ -26,44 +26,44 @@ SKILL_DIR="${HOME}/.claude/skills/ai-memory"
 DATA_DIR="${HOME}/.claude/ai-memory"
 REPO_URL="https://github.com/shmxybfq/ai-memory"
 
-# Print helpers
+# 输出辅助函数
 info()    { printf "\033[34m[info]\033[0m  %s\n" "$*"; }
 success() { printf "\033[32m[ok]\033[0m    %s\n" "$*"; }
 warn()    { printf "\033[33m[warn]\033[0m  %s\n" "$*"; }
 error()   { printf "\033[31m[err]\033[0m   %s\n" "$*" >&2; }
 die()     { error "$*"; exit 1; }
 
-# Pre-flight checks
-command -v git >/dev/null 2>&1 || die "git is required. Install it first."
+# 预检查
+command -v git >/dev/null 2>&1 || die "需要 git,请先安装。"
 [ -d "${HOME}/.claude" ] || mkdir -p "${HOME}/.claude"
 
-info "Installing ai-memory..."
+info "正在安装 ai-memory..."
 
-# Step 1: Install/Update Skill
+# 步骤 1:安装/更新 Skill
 if [ -L "${SKILL_DIR}" ] || [ -d "${SKILL_DIR}/.git" ]; then
-    info "Existing installation detected, updating..."
+    info "检测到已有安装,执行更新..."
     if [ -L "${SKILL_DIR}" ]; then
-        # Symlink — follow it to the real path and update there
+        # 符号链接 — 跟踪到真实路径并在那里更新
         REAL_PATH=$(readlink "${SKILL_DIR}")
-        info "Symlink detected, updating target: ${REAL_PATH}"
+        info "检测到符号链接,更新目标: ${REAL_PATH}"
         if [ -d "${REAL_PATH}/.git" ]; then
-            cd "${REAL_PATH}" && git pull --ff-only || warn "git pull failed, will continue"
+            cd "${REAL_PATH}" && git pull --ff-only || warn "git pull 失败,继续执行"
         else
-            warn "Symlink target is not a git repo, skipping update"
+            warn "符号链接目标不是 git 仓库,跳过更新"
         fi
     else
-        cd "${SKILL_DIR}" && git pull --ff-only || warn "git pull failed, will continue"
+        cd "${SKILL_DIR}" && git pull --ff-only || warn "git pull 失败,继续执行"
     fi
 else
-    info "Cloning from ${REPO_URL}..."
+    info "从 ${REPO_URL} 克隆..."
     mkdir -p "${HOME}/.claude/skills"
-    git clone --depth 1 "${REPO_URL}" "${SKILL_DIR}" || die "git clone failed"
+    git clone --depth 1 "${REPO_URL}" "${SKILL_DIR}" || die "git clone 失败"
 fi
 
-# Step 2: Initialize data directory
+# 步骤 2:初始化数据目录
 mkdir -p "${DATA_DIR}"
 
-# Write initial version cache (prevents immediate "new version available" prompt)
+# 写入初始版本缓存(避免安装后立即提示"有新版本")
 SKILL_VERSION=$(grep -E '^version:' "${SKILL_DIR}/SKILL.md" 2>/dev/null | head -1 | sed 's/version: *//; s/[[:space:]]*$//')
 [ -z "${SKILL_VERSION}" ] && SKILL_VERSION="0.1.0"
 
@@ -80,29 +80,29 @@ if [ ! -f "${CACHE_FILE}" ]; then
   "user_dismissed": []
 }
 EOF
-    info "Initialized version cache (current: ${SKILL_VERSION})"
+    info "已初始化版本缓存(当前版本: ${SKILL_VERSION})"
 fi
 
-# Step 3: Verify install
+# 步骤 3:验证安装
 if [ ! -f "${SKILL_DIR}/SKILL.md" ]; then
-    die "Installation incomplete: SKILL.md not found at ${SKILL_DIR}/SKILL.md"
+    die "安装不完整:在 ${SKILL_DIR}/SKILL.md 找不到 SKILL.md"
 fi
 
-# Done
+# 完成
 echo ""
-success "ai-memory ${SKILL_VERSION} installed!"
+success "ai-memory ${SKILL_VERSION} 已安装!"
 echo ""
-echo "Next steps:"
-echo "  1. Restart Claude Code (or start a new session)"
-echo "  2. In any project, run: /aim-init <project-name>"
-echo "  3. After 3-5 docs, run: /aim-compress"
+echo "下一步:"
+echo "  1. 重启 Claude Code(或开启新会话)"
+echo "  2. 在任意项目中运行: /aim-init <项目名>"
+echo "  3. 攒到 3-5 篇文档后运行: /aim-compress"
 echo ""
-echo "Useful commands:"
-echo "  /aim-help     Show all commands"
-echo "  /aim-list     List all projects with ai-memory"
-echo "  /aim-uninit   Remove from a project (--global to uninstall)"
+echo "常用命令:"
+echo "  /aim-help     显示所有命令"
+echo "  /aim-list     列出所有 ai-memory 项目"
+echo "  /aim-uninit   从项目中移除(--global 卸载 Skill 本体)"
 echo ""
-echo "Documentation:"
+echo "文档:"
 echo "  ${SKILL_DIR}/README.md"
 echo "  ${REPO_URL}"
 echo ""
