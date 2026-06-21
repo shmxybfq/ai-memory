@@ -1,64 +1,64 @@
 ---
 name: aim-init
-description: Initialize ai-memory project memory. Run once per project to set up document structure, INDEX.yaml, and CLAUDE.md rule injection.
+description: 初始化 ai-memory 项目记忆。每个项目运行一次,设置文档结构、INDEX.yaml,并将规则注入 CLAUDE.md。
 ---
 
-# /aim-init — Initialize Project Memory
+# /aim-init — 初始化项目记忆
 
-## Purpose
+## 用途
 
-Set up ai-memory for a project. Creates the document structure, INDEX.yaml, and injects rules into CLAUDE.md so Claude Code knows about the project memory in future sessions.
+为某个项目设置 ai-memory。创建文档结构、INDEX.yaml,并把规则注入 CLAUDE.md,这样 Claude Code 在未来的会话里就能感知到项目记忆。
 
-**Run once per project.** Re-running on an initialized project is safe (detects and skips).
+**每个项目运行一次。** 在已初始化的项目上重新运行是安全的(会检测并跳过)。
 
-## Usage
+## 用法
 
 ```
 /aim-init [project-name]
 ```
 
-- `project-name` (optional): Display name for the project (e.g., "视频项目"). If omitted, ask the user.
+- `project-name`(可选):项目的显示名称(例如 "视频项目")。如果省略,询问用户。
 
-## Prerequisites
+## 前置条件
 
-- Claude Code installed
-- For central mode: know where you want to store all project docs (one root directory)
+- 已安装 Claude Code
+- 集中式模式:你需要决定把所有项目文档放在哪个根目录下
 
-## Flow
+## 流程
 
-Execute these steps in order. Stop and ask the user when input is needed.
+按顺序执行以下步骤。需要输入时停下来询问用户。
 
-### Step 1: Resolve User Identity
+### 步骤 1:解析用户身份
 
-Check if global identity exists:
+检查全局身份是否存在:
 
 ```
-Read ~/.claude/ai-memory/identity.json
+读取 ~/.claude/ai-memory/identity.json
 ```
 
-**If exists**: use it, skip to Step 2.
+**如果存在**:直接使用,跳到步骤 2。
 
-**If not exists**: create identity.
+**如果不存在**:创建身份。
 
-1. Try to read git global username:
+1. 尝试读取 git 全局用户名:
    ```
-   Run: git config --global user.name
+   执行:git config --global user.name
    ```
-2. If git name exists, ask user:
+2. 如果 git 用户名存在,询问用户:
    ```
    检测到 git 用户名 [朱陶锋],是否使用?
    1. 使用
    2. 输入其他名字
    选择(1/2):
    ```
-3. If git name missing or user chose 2, ask:
+3. 如果 git 用户名缺失或用户选 2,询问:
    ```
    请输入你的名字(用于协作时标识作者):
    ```
-4. Generate user ID: `u-` + 8 random alphanumeric chars (lowercase). Example: `u-a3b2f1c9`.
-5. Determine storage directory for identity:
-   - `~/.claude/ai-memory/` — create if not exists
-6. Write `~/.claude/ai-memory/identity.json`:
+4. 生成用户 ID:`u-` + 8 位随机字母数字(小写)。例如:`u-a3b2f1c9`。
+5. 确定身份存储目录:
+   - `~/.claude/ai-memory/` — 不存在则创建
+6. 写入 `~/.claude/ai-memory/identity.json`:
    ```json
    {
      "id": "u-a3b2f1c9",
@@ -67,11 +67,11 @@ Read ~/.claude/ai-memory/identity.json
      "git_user": "zhu-taofeng"
    }
    ```
-7. Confirm to user: `已创建身份: 朱陶锋 (u-a3b2f1c9)`
+7. 向用户确认:`已创建身份: 朱陶锋 (u-a3b2f1c9)`
 
-### Step 2: Ask Storage Mode
+### 步骤 2:询问存储模式
 
-Ask user:
+询问用户:
 ```
 请选择存储模式:
 1. 集中式(推荐):所有项目文档统一放在一个根目录,一个 CLAUDE.md 管所有项目
@@ -79,147 +79,147 @@ Ask user:
 选择(1/2,默认 1):
 ```
 
-- Default: 1 (central)
-- Save choice as `MODE` (central / distributed)
+- 默认:1(集中式)
+- 保存为 `MODE`(central / distributed)
 
-### Step 3: Resolve Document Root
+### 步骤 3:解析文档根目录
 
-**Central mode**:
-Ask user for root path:
+**集中式模式**:
+询问用户根目录路径:
 ```
 请输入文档根目录路径(默认: ~/Desktop/persistent-document/):
 ```
-- If empty, use `~/Desktop/persistent-document/`
-- Expand `~` to home directory
-- Save as `ROOT_PATH`
-- If root doesn't exist, ask: `路径不存在,是否创建? (Y/n)`. Default Y.
+- 如果为空,使用 `~/Desktop/persistent-document/`
+- 将 `~` 展开为 home 目录
+- 保存为 `ROOT_PATH`
+- 如果根目录不存在,询问:`路径不存在,是否创建? (Y/n)`。默认 Y。
 
-**Distributed mode**:
-- `ROOT_PATH` = current working directory (cwd)
-- No need to ask
+**分散式模式**:
+- `ROOT_PATH` = 当前工作目录(cwd)
+- 无需询问
 
-### Step 4: Resolve Project Name and Subdir Name
+### 步骤 4:解析项目名称与子目录名
 
-**Project display name**:
-- If command argument provided (e.g., `/aim-init 视频项目`), use it
-- Otherwise ask:
+**项目显示名称**:
+- 如果命令参数提供了(如 `/aim-init 视频项目`),直接使用
+- 否则询问:
   ```
   请输入项目名(用于显示,如"视频项目"):
   ```
-- Save as `PROJECT_NAME`
+- 保存为 `PROJECT_NAME`
 
-**Subdirectory name** (file system name):
+**子目录名**(文件系统名):
 
-Ask user:
+询问用户:
 ```
 请输入项目子目录名(用于文件系统,建议英文/拼音,如"bauto-video"):
 ```
-- Save as `SUBDIR_NAME`
-- Validate: no spaces, no special chars except `-` and `_`
-- If invalid, ask again
+- 保存为 `SUBDIR_NAME`
+- 校验:不能有空格,除 `-` 和 `_` 外不能有特殊字符
+- 不合法则重新询问
 
-**Central mode**: project path = `ROOT_PATH / SUBDIR_NAME`
-**Distributed mode**: project path = `ROOT_PATH / .ai-memory`
+**集中式模式**:项目路径 = `ROOT_PATH / SUBDIR_NAME`
+**分散式模式**:项目路径 = `ROOT_PATH / .ai-memory`
 
-### Step 5: Check for Existing Project
+### 步骤 5:检查项目是否已存在
 
-Read `<project_path>/INDEX.yaml`.
+读取 `<project_path>/INDEX.yaml`。
 
-**If exists**: 
+**如果存在**:
 ```
 项目 [视频项目] 已初始化。
 INDEX.yaml 位置: <project_path>/INDEX.yaml
 如需重新初始化,请先 /aim-archive 或手动删除 INDEX.yaml。
 操作终止。
 ```
-Stop.
+停止。
 
-**If not exists**: continue.
+**如果不存在**:继续。
 
-### Step 6: Create Project Structure
+### 步骤 6:创建项目结构
 
-**Central mode**:
+**集中式模式**:
 ```
-Run: mkdir -p <ROOT_PATH>/<SUBDIR_NAME>
-```
-
-**Distributed mode**:
-```
-Run: mkdir -p <ROOT_PATH>/.ai-memory
+执行:mkdir -p <ROOT_PATH>/<SUBDIR_NAME>
 ```
 
-### Step 7: Generate INDEX.yaml
+**分散式模式**:
+```
+执行:mkdir -p <ROOT_PATH>/.ai-memory
+```
 
-Read template: `templates/INDEX.yaml.tpl`
+### 步骤 7:生成 INDEX.yaml
 
-Replace placeholders:
+读取模板:`templates/INDEX.yaml.tpl`
+
+替换占位符:
 - `{{PROJECT_NAME}}` → PROJECT_NAME
-- `{{MODE}}` → MODE (central / distributed)
-- `{{ROOT_PATH}}` → absolute project path
-- `{{CREATED_DATE}}` → today (YYYY-MM-DD)
-- `{{UPDATED_DATE}}` → today
+- `{{MODE}}` → MODE(central / distributed)
+- `{{ROOT_PATH}}` → 项目绝对路径
+- `{{CREATED_DATE}}` → 今天(YYYY-MM-DD)
+- `{{UPDATED_DATE}}` → 今天
 - `{{USER_ID}}` → identity.id
 - `{{USER_NAME}}` → identity.name
 
-Write to: `<project_path>/INDEX.yaml`
+写入:`<project_path>/INDEX.yaml`
 
-### Step 8: Inject CLAUDE.md Rules
+### 步骤 8:注入 CLAUDE.md 规则
 
-**Determine CLAUDE.md path**:
-- Central mode: `<ROOT_PATH>/CLAUDE.md`
-- Distributed mode: `<ROOT_PATH>/CLAUDE.md`
+**确定 CLAUDE.md 路径**:
+- 集中式模式:`<ROOT_PATH>/CLAUDE.md`
+- 分散式模式:`<ROOT_PATH>/CLAUDE.md`
 
-**Check if ai-memory rules already injected**:
+**检查 ai-memory 规则是否已注入**:
 ```
-Read CLAUDE.md (if exists)
-Search for: <!-- ai-memory rules start
+读取 CLAUDE.md(如果存在)
+搜索:<!-- ai-memory rules start
 ```
 
-**If found**:
+**如果找到**:
 ```
 CLAUDE.md 已包含 ai-memory 规则,跳过注入。
 ```
-Skip injection.
+跳过注入。
 
-**If not found**: append rules.
+**如果未找到**:追加规则。
 
-1. Read template: `templates/claude-md-rules.md.tpl`
-2. Replace placeholders:
+1. 读取模板:`templates/claude-md-rules.md.tpl`
+2. 替换占位符:
    - `{{GITHUB_USER}}` → `shmxybfq`
-   - `{{MODE}}` → MODE (central / distributed)
-3. Handle the conditional block `{{#CENTRAL}} ... {{/CENTRAL}}`:
-   - **Central mode**: replace the whole `{{#CENTRAL}}` and `{{/CENTRAL}}` marker lines with empty (keep the inner content). Then inside that block, replace `{{PROJECT_MAPPING}}` with a list of all projects under this root:
+   - `{{MODE}}` → MODE(central / distributed)
+3. 处理条件块 `{{#CENTRAL}} ... {{/CENTRAL}}`:
+   - **集中式模式**:把 `{{#CENTRAL}}` 和 `{{/CENTRAL}}` 标记行本身替换为空(保留中间内容)。然后在该块内,把 `{{PROJECT_MAPPING}}` 替换为该根目录下所有项目列表:
      ```
      - <SUBDIR_NAME> → <PROJECT_NAME>
      ```
-     If other projects already exist in root (scan INDEX.yaml in sibling dirs), include them too.
-   - **Distributed mode**: delete the entire block from `{{#CENTRAL}}` line through `{{/CENTRAL}}` line (inclusive).
-4. If CLAUDE.md doesn't exist, create it with the rules as the only content.
-5. If CLAUDE.md exists:
-   - If it's a regular file: append rules to the end with `\n\n` separator.
-   - If it's a **symlink**: resolve the symlink target, write to the target file (don't break the link). Warn user: `CLAUDE.md 是符号链接,已写入目标 [xxx],链接保持不变`。
+     如果根目录下还有其他项目(扫描同级目录中的 INDEX.yaml),也一并纳入。
+   - **分散式模式**:删除从 `{{#CENTRAL}}` 到 `{{/CENTRAL}}` 的整块(包含这两行)。
+4. 如果 CLAUDE.md 不存在,以这些规则作为唯一内容创建。
+5. 如果 CLAUDE.md 存在:
+   - 如果是普通文件:在末尾以 `\n\n` 分隔追加规则。
+   - 如果是**符号链接**:解析符号链接目标,写入目标文件(不要破坏链接)。提示用户:`CLAUDE.md 是符号链接,已写入目标 [xxx],链接保持不变`。
 
-### Step 9: Git Initialization (Optional)
+### 步骤 9:Git 初始化(可选)
 
-**Ask user**:
+**询问用户**:
 ```
 是否将此项目纳入 Git 版本管理? (Y/n)
 ```
 
-- Default Y for distributed mode (project codebase already in git usually)
-- Default n for central mode (personal doc collection, may or may not be in git)
+- 分散式模式默认 Y(项目代码通常已在 git 中)
+- 集中式模式默认 n(个人文档集,可能纳入也可能不纳入)
 
-**If Y**:
-- Central mode: `cd <ROOT_PATH> && git init` (if not already in git)
-- Distributed mode: usually already in git, just add `.ai-memory/` to tracking
+**如果 Y**:
+- 集中式模式:`cd <ROOT_PATH> && git init`(如果尚未在 git 中)
+- 分散式模式:通常已在 git 中,只需把 `.ai-memory/` 加入追踪
 
-Commit:
+提交:
 ```
 git add <project files> <CLAUDE.md>
 git commit -m "[aim-init] <PROJECT_NAME> - 初始化项目记忆 (<USER_NAME>)"
 ```
 
-### Step 10: Output Result
+### 步骤 10:输出结果
 
 ```
 ✅ ai-memory 初始化完成
@@ -234,7 +234,7 @@ git commit -m "[aim-init] <PROJECT_NAME> - 初始化项目记忆 (<USER_NAME>)"
 
 📁 创建的文件
    - /Users/zhutaofeng/Desktop/persistent-document/bauto-video/INDEX.yaml
-   - /Users/zhutaofeng/Desktop/persistent-document/CLAUDE.md (已追加规则)
+   - /Users/zhutaofeng/Desktop/persistent-document/CLAUDE.md(已追加规则)
 
 📝 下一步
    1. /aim-add 添加你的第一份文档
@@ -246,37 +246,37 @@ git commit -m "[aim-init] <PROJECT_NAME> - 初始化项目记忆 (<USER_NAME>)"
    不需要重新探索项目。
 ```
 
-## Edge Cases
+## 边界情况
 
-### Case A: Identity file exists but is corrupted
-- Try to parse JSON
-- If fails: warn user, ask permission to overwrite
-- Backup old file to `identity.json.bak.<timestamp>`
+### 情况 A:身份文件存在但已损坏
+- 尝试解析 JSON
+- 如果失败:提示用户,请求覆盖授权
+- 将旧文件备份为 `identity.json.bak.<timestamp>`
 
-### Case B: Root path requires sudo (unlikely on macOS user dirs)
-- Skip with error: `无法创建目录 [xxx],请检查权限`
+### 情况 B:根目录路径需要 sudo(macOS 用户目录下基本不会)
+- 跳过并报错:`无法创建目录 [xxx],请检查权限`
 
-### Case C: Project subdir name collides with existing dir (not from ai-memory)
-- Check if `<path>/INDEX.yaml` exists (already handled in Step 5)
-- If dir exists but no INDEX.yaml: ask `目录已存在但不是 ai-memory 项目,是否在此目录初始化? (Y/n)`
+### 情况 C:项目子目录名与已存在的目录冲突(非 ai-memory 产生)
+- 检查 `<path>/INDEX.yaml` 是否存在(已在步骤 5 处理)
+- 如果目录存在但没有 INDEX.yaml:询问 `目录已存在但不是 ai-memory 项目,是否在此目录初始化? (Y/n)`
 
-### Case D: CLAUDE.md is read-only
-- Detect on write attempt
-- Error: `无法写入 CLAUDE.md,请检查文件权限`
+### 情况 D:CLAUDE.md 是只读
+- 写入时检测
+- 报错:`无法写入 CLAUDE.md,请检查文件权限`
 
-### Case E: User cancels mid-flow (chooses "取消" or quits)
-- Clean up any partial files created
-- Restore CLAUDE.md if partially modified
+### 情况 E:用户中途取消(选择"取消"或退出)
+- 清理已创建的半成品文件
+- 如 CLAUDE.md 被部分修改则还原
 
-## Output Style
+## 输出风格
 
-- Use Chinese for user-facing messages (default)
-- Use English for code/file content
-- Use ✅ ❌ ⚠️ 📋 📁 📝 💡 emojis in output (improves readability)
-- Show full file paths (user can click in terminal)
+- 用户可见信息默认用中文
+- 代码/文件内容用英文
+- 输出中使用 emoji(✅ ❌ ⚠️ 📋 📁 📝 💡)以提升可读性
+- 显示完整文件路径(用户在终端中可点击)
 
-## Reference
+## 参考
 
-- Template: `templates/INDEX.yaml.tpl`
-- Template: `templates/claude-md-rules.md.tpl`
-- Concept doc: `reference/central-vs-distributed.md`
+- 模板:`templates/INDEX.yaml.tpl`
+- 模板:`templates/claude-md-rules.md.tpl`
+- 概念文档:`reference/central-vs-distributed.md`

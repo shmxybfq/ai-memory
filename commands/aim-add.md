@@ -1,78 +1,78 @@
 ---
 name: aim-add
-description: Add a new document to the project memory. Always creates a new file (never modifies existing). Use for recording knowledge, decisions, debugging notes, or summaries.
+description: 向项目记忆添加新文档。总是创建新文件(从不修改已有文档)。用于记录知识、决策、调试笔记或总结。
 ---
 
-# /aim-add — Add New Document
+# /aim-add — 添加新文档
 
-## Purpose
+## 用途
 
-Create a new HTML document in the project's memory directory, with proper metadata embedding and INDEX.yaml update. **Always creates a new file** — use `/aim-append` to extend or `/aim-edit` to modify existing docs.
+在项目记忆目录中创建新的 HTML 文档,嵌入正确的元数据并更新 INDEX.yaml。**总是创建新文件** — 扩展已有文档用 `/aim-append`,修改已有文档用 `/aim-edit`。
 
-## Usage
+## 用法
 
 ```
-/aim-add [natural language content or description]
+/aim-add [自然语言内容或描述]
 ```
 
-- If content is provided as argument, use it directly.
-- If no argument, ask user to paste content or describe what to record.
+- 如果参数提供了内容,直接使用。
+- 如果没有参数,请用户粘贴内容或描述要记录什么。
 
-## Prerequisites
+## 前置条件
 
-- Project must be initialized (`/aim-init` done). Detect by:
-  - Central mode: `<root>/<subdir>/INDEX.yaml` exists
-  - Distributed mode: `<cwd>/.ai-memory/INDEX.yaml` exists
-- If not initialized: stop with message: `项目未初始化,请先运行 /aim-init`
+- 项目必须已初始化(已运行 `/aim-init`)。检测方式:
+  - 集中式模式:`<root>/<subdir>/INDEX.yaml` 存在
+  - 分散式模式:`<cwd>/.ai-memory/INDEX.yaml` 存在
+- 如果未初始化:停止并提示:`项目未初始化,请先运行 /aim-init`
 
-## Flow
+## 流程
 
-### Step 1: Resolve Current Project
+### 步骤 1:解析当前项目
 
-1. Check current working directory.
-2. Try to find project:
-   - **Distributed mode**: look for `<cwd>/.ai-memory/INDEX.yaml`
-   - **Central mode**: scan known roots (`~/Desktop/persistent-document/` and other roots recorded in `~/.claude/ai-memory/projects.json`) for subdirs containing INDEX.yaml matching cwd context.
-3. If multiple projects found, ask user which one.
-4. If no project found: error and stop.
+1. 检查当前工作目录。
+2. 尝试查找项目:
+   - **分散式模式**:查找 `<cwd>/.ai-memory/INDEX.yaml`
+   - **集中式模式**:扫描已知根目录(`~/Desktop/persistent-document/` 以及记录在 `~/.claude/ai-memory/projects.json` 中的其他根),匹配包含 INDEX.yaml 且与当前 cwd 上下文相符的子目录。
+3. 如果找到多个项目,询问用户选哪个。
+4. 如果没找到项目:报错并停止。
 
-Read INDEX.yaml, save as `INDEX`.
+读取 INDEX.yaml,保存为 `INDEX`。
 
-### Step 2: Resolve User Identity
+### 步骤 2:解析用户身份
 
-1. Read `~/.claude/ai-memory/identity.json`.
-2. If missing: error `用户身份未初始化,请重新运行 /aim-init`.
-3. Save as `USER`.
+1. 读取 `~/.claude/ai-memory/identity.json`。
+2. 如果缺失:报错 `用户身份未初始化,请重新运行 /aim-init`。
+3. 保存为 `USER`。
 
-### Step 3: Collect Document Content
+### 步骤 3:收集文档内容
 
-**If command argument provided**: use it as `RAW_CONTENT`.
+**如果命令提供了参数**:直接作为 `RAW_CONTENT`。
 
-**If not provided**, prompt user:
+**如果未提供**,提示用户:
 ```
 请输入要记录的内容(可以是自然语言描述、技术决策、踩坑记录等):
 [等待用户输入,可能多行]
 ```
 
-Save as `RAW_CONTENT`.
+保存为 `RAW_CONTENT`。
 
-### Step 4: Determine Document Metadata
+### 步骤 4:确定文档元数据
 
-#### 4.1 Title
+#### 4.1 标题
 
-Look at RAW_CONTENT. If it starts with a clear topic, propose a title.
+查看 RAW_CONTENT。如果开头是清晰主题,生成标题建议。
 
-Ask user:
+询问用户:
 ```
 建议标题: [基于内容生成的标题]
 请确认或修改(回车确认):
 ```
 
-Save as `TITLE`.
+保存为 `TITLE`。
 
-#### 4.2 Source
+#### 4.2 来源
 
-Ask user (with default):
+询问用户(带默认值):
 ```
 文档来源:
 1. 对话(对话沉淀、决策记录)
@@ -82,26 +82,26 @@ Ask user (with default):
 选择(1-4,默认 1):
 ```
 
-Save as `SOURCE` (对话/踩坑/外部/决策).
+保存为 `SOURCE`(对话/踩坑/外部/决策)。
 
-#### 4.3 Tags
+#### 4.3 标签
 
-Ask user (optional):
+询问用户(可选):
 ```
 标签(逗号分隔,可选,如 auth,security,api):
 ```
 
-If empty, use `[]`. Otherwise parse to list. Save as `TAGS`.
+为空则用 `[]`。否则解析为列表。保存为 `TAGS`。
 
-#### 4.4 Filename
+#### 4.4 文件名
 
-Generate from TITLE:
-- Replace spaces with `-`
-- Remove special chars except `-`, `_`, `.`
-- Append date prefix `YYYY-MM-DD-`
-- Example: `2026-06-21-auth-module-design.html`
+从 TITLE 生成:
+- 空格替换为 `-`
+- 移除除 `-`、`_`、`.` 外的特殊字符
+- 加上日期前缀 `YYYY-MM-DD-`
+- 示例:`2026-06-21-auth-module-design.html`
 
-If filename conflicts with existing file in project dir:
+如果文件名与项目目录中已有文件冲突:
 ```
 文件 [xxx.html] 已存在,是否:
 1. 自动加后缀(auth-module-design-2.html)
@@ -109,52 +109,52 @@ If filename conflicts with existing file in project dir:
 选择(1/2):
 ```
 
-Save as `FILENAME`.
+保存为 `FILENAME`。
 
-#### 4.5 Doc ID
+#### 4.5 文档 ID
 
-Generate: `aim-` + `YYYYMMDD` + `-` + 6 random alphanumeric chars.
-Example: `aim-20260621-a3b2f1`.
+生成:`aim-` + `YYYYMMDD` + `-` + 6 位随机字母数字。
+示例:`aim-20260621-a3b2f1`。
 
-Save as `DOC_ID`.
+保存为 `DOC_ID`。
 
-### Step 5: Generate HTML Content
+### 步骤 5:生成 HTML 内容
 
-Use Claude to structure RAW_CONTENT into well-formatted HTML.
+由 Claude 把 RAW_CONTENT 结构化为格式良好的 HTML。
 
-**Structure rules**:
-- Use the HTML template: `templates/doc-template.html.tpl`
-- Apply section structure: title, metadata block, content sections, footer
-- Convert markdown-like content (lists, code blocks, tables) to proper HTML
-- Apply consistent styling (the template has built-in CSS)
+**结构规则**:
+- 使用 HTML 模板:`templates/doc-template.html.tpl`
+- 应用章节结构:标题、元数据块、内容章节、页脚
+- 把 markdown 风格内容(列表、代码块、表格)转换为合适的 HTML
+- 应用统一样式(模板已内置 CSS)
 
-**Render template with**:
+**渲染模板时**:
 - `{{DOC_ID}}` → DOC_ID
 - `{{TITLE}}` → TITLE
-- `{{TAGS}}` → TAGS joined as string
-- `{{CREATED}}` → today (YYYY-MM-DD)
+- `{{TAGS}}` → TAGS 拼接为字符串
+- `{{CREATED}}` → 今天(YYYY-MM-DD)
 - `{{CREATED_BY}}` → USER.id
 - `{{OWNER}}` → USER.id
 - `{{OWNER_NAME}}` → USER.name
 - `{{SOURCE}}` → SOURCE
-- `{{CONTENT}}` → structured HTML from RAW_CONTENT
+- `{{CONTENT}}` → 从 RAW_CONTENT 生成的结构化 HTML
 
-**Metadata header in HTML comment** (already in template):
+**HTML 注释中的元数据头**(模板已包含):
 ```html
 <!-- aim:doc_id=aim-20260621-a3b2f1 title=认证模块设计 tags=auth,security created=2026-06-21 created_by=u-a3b2f1c9 owner=u-a3b2f1c9 status=active source=对话 -->
 ```
 
-### Step 6: Write File
+### 步骤 6:写入文件
 
-Determine write path:
-- Central mode: `<ROOT>/<SUBDIR>/<FILENAME>`
-- Distributed mode: `<ROOT>/.ai-memory/<FILENAME>`
+确定写入路径:
+- 集中式模式:`<ROOT>/<SUBDIR>/<FILENAME>`
+- 分散式模式:`<ROOT>/.ai-memory/<FILENAME>`
 
-Write HTML content to file.
+将 HTML 内容写入文件。
 
-### Step 7: Update INDEX.yaml
+### 步骤 7:更新 INDEX.yaml
 
-Append to `active` list:
+追加到 `active` 列表:
 ```yaml
 - doc_id: "aim-20260621-a3b2f1"
   title: "认证模块设计"
@@ -175,25 +175,25 @@ Append to `active` list:
     - { user: "u-a3b2f1c9", name: "朱陶锋", last: "2026-06-21" }
 ```
 
-Update INDEX.yaml top-level `updated` field to today.
+将 INDEX.yaml 顶层的 `updated` 字段更新为今天。
 
-### Step 8: Token Estimation
+### 步骤 8:估算 tokens
 
-Estimate tokens for the new doc (rough: Chinese ~1 char = 1 token, English ~4 chars = 1 token, HTML tags ~50% overhead).
+为新文档估算 tokens(粗略:中文约 1 字符 = 1 token,英文约 4 字符 = 1 token,HTML 标签约 50% 开销)。
 
-Save to the active entry's `tokens` field.
+写入该 active 条目的 `tokens` 字段。
 
-### Step 9: Git Commit (Optional)
+### 步骤 9:Git 提交(可选)
 
-Check if project is in git repo.
+检查项目是否在 git 仓库中。
 
-**If in git**:
+**如果在 git 中**:
 - `git add <FILENAME> INDEX.yaml`
 - `git commit -m "[aim-add] <PROJECT_NAME> - 新建 <FILENAME> (doc:<DOC_ID>)"`
 
-**If not in git**: skip, just inform user `未纳入 Git,文档已保存但未版本管理`.
+**如果不在 git 中**:跳过,只提示用户 `未纳入 Git,文档已保存但未版本管理`。
 
-### Step 10: Output Result
+### 步骤 10:输出结果
 
 ```
 ✅ 文档已添加
@@ -208,8 +208,8 @@ Check if project is in git repo.
    /Users/zhutaofeng/Desktop/persistent-document/bauto-video/2026-06-21-auth-module-design.html
 
 📊 项目状态
-   活跃文档: 6 篇 (累计 8,400 tokens)
-   压缩文档: 1 篇 (12,500 tokens)
+   活跃文档: 6 篇(累计 8,400 tokens)
+   压缩文档: 1 篇(12,500 tokens)
    💡 提示: 活跃文档已 6 篇,建议运行 /aim-compress 整理
 
 📝 下一步
@@ -218,50 +218,50 @@ Check if project is in git repo.
    - 压缩归档: /aim-compress
 ```
 
-**Compress suggestion threshold**:
-- 3+ active docs → gentle hint
-- 5+ active docs → strong recommendation
-- 8+ active docs → warning (memory bloat risk)
+**压缩建议阈值**:
+- 活跃 3+ 篇 → 温和提示
+- 活跃 5+ 篇 → 强烈建议
+- 活跃 8+ 篇 → 警告(膨胀风险)
 
-## Edge Cases
+## 边界情况
 
-### Case A: Project not initialized
-- Detect by missing INDEX.yaml
-- Stop: `项目未初始化,请先运行 /aim-init`
+### 情况 A:项目未初始化
+- 通过 INDEX.yaml 缺失检测
+- 停止:`项目未初始化,请先运行 /aim-init`
 
-### Case B: Identity missing or invalid
-- Stop: `用户身份未初始化,请重新运行 /aim-init 或 /aim-identity`
+### 情况 B:身份缺失或无效
+- 停止:`用户身份未初始化,请重新运行 /aim-init 或 /aim-identity`
 
-### Case C: Filename collision (same title used before)
-- Detect before write
-- Ask user: rename or cancel
+### 情况 C:文件名冲突(之前用过相同标题)
+- 写入前检测
+- 询问用户:改名或取消
 
-### Case D: Content is empty
-- If RAW_CONTENT is empty/whitespace: `内容为空,操作取消`
+### 情况 D:内容为空
+- 如果 RAW_CONTENT 为空或空白:`内容为空,操作取消`
 
-### Case E: Content too large
-- If estimated > 5000 tokens for a single doc:
-  - Warn user: `内容较长(约 X tokens),建议拆分为多篇文档。是否继续? (Y/n)`
+### 情况 E:内容过大
+- 如果单篇文档估算 > 5000 tokens:
+  - 提示用户:`内容较长(约 X tokens),建议拆分为多篇文档。是否继续? (Y/n)`
 
-### Case F: INDEX.yaml is corrupted
-- Try to parse YAML
-- If fails: `INDEX.yaml 损坏,请运行 /aim-rebuild 修复后重试`
+### 情况 F:INDEX.yaml 损坏
+- 尝试解析 YAML
+- 如果失败:`INDEX.yaml 损坏,请运行 /aim-rebuild 修复后重试`
 
-## Soft Sandbox Behavior
+## 软沙盒行为
 
-- `/aim-add` always creates files owned by current user (`owner = USER.id`).
-- No cross-user confirmation needed (new file is always own).
-- Document `permission` defaults to `private` (only owner can modify without confirmation).
+- `/aim-add` 创建的文档所有者总是当前用户(`owner = USER.id`)。
+- 无需跨用户确认(新文件永远属于自己)。
+- 文档 `permission` 默认为 `private`(只有所有者可免确认修改)。
 
-## Output Style
+## 输出风格
 
-- Use Chinese for user-facing messages
-- Show full file paths
-- Use emojis (✅ 📋 📁 📊 💡 📝) consistently
-- Keep output concise but informative
+- 用户可见信息用中文
+- 显示完整文件路径
+- 一致地使用 emoji(✅ 📋 📁 📊 💡 📝)
+- 输出简洁但信息充足
 
-## Reference
+## 参考
 
-- Template: `templates/doc-template.html.tpl`
-- Concept: `reference/document-lifecycle.md`
-- Companion commands: `/aim-append`, `/aim-edit`
+- 模板:`templates/doc-template.html.tpl`
+- 概念:`reference/document-lifecycle.md`
+- 配套命令:`/aim-append`、`/aim-edit`

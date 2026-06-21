@@ -1,48 +1,48 @@
 ---
 name: aim-identity
-description: View or modify user identity. The identity is global (one per machine) and used to attribute documents across all projects.
+description: 查看或修改用户身份。身份是全局的(每台机器一个),用于在所有项目中归属文档。
 ---
 
-# /aim-identity — Manage User Identity
+# /aim-identity — 管理用户身份
 
-## Purpose
+## 用途
 
-View or modify the global user identity stored at `~/.claude/ai-memory/identity.json`. The identity is:
-- **Global** — one identity per machine/user, shared across all projects.
-- **Persistent** — created once, used forever unless explicitly changed.
-- **Attribution** — every doc you create/edit records your identity.
+查看或修改存储在 `~/.claude/ai-memory/identity.json` 的全局用户身份。身份特性:
+- **全局** — 每台机器/用户一个身份,跨所有项目共享。
+- **持久** — 创建一次,除非显式变更,永久使用。
+- **归属** — 你创建/编辑的每篇文档都会记录你的身份。
 
-Use this command when:
-- First time setup (alternative to `/aim-init`'s identity step)
-- Your name changed (e.g., legal name change, display preference)
-- Multiple people share a machine and you need to switch
-- Troubleshooting "wrong author on my docs"
+适用场景:
+- 首次设置(作为 `/aim-init` 身份步骤的替代)
+- 改名(如法定姓名变更、显示偏好)
+- 多人共用一台机器,需要切换
+- 排查"我的文档作者显示错误"
 
-## Usage
-
-```
-/aim-identity                    # View current identity
-/aim-identity --set-name <name>  # Change display name
-/aim-identity --reset            # Regenerate user ID (rarely needed)
-```
-
-## Prerequisites
-
-None for viewing. For modification, must have write access to `~/.claude/ai-memory/`.
-
-## Flow
-
-### Step 1: Read Current Identity
+## 用法
 
 ```
-Read ~/.claude/ai-memory/identity.json
+/aim-identity                    # 查看当前身份
+/aim-identity --set-name <name>  # 修改显示名
+/aim-identity --reset            # 重新生成用户 ID(很少需要)
 ```
 
-### Step 2: Branch by Mode
+## 前置条件
 
-#### View mode (no flags)
+查看无需任何条件。修改需对 `~/.claude/ai-memory/` 有写权限。
 
-Display:
+## 流程
+
+### 步骤 1:读取当前身份
+
+```
+读取 ~/.claude/ai-memory/identity.json
+```
+
+### 步骤 2:按模式分支
+
+#### 查看模式(无 flag)
+
+展示:
 
 ```
 👤 当前用户身份
@@ -62,13 +62,13 @@ Git:   zhu-taofeng(若已关联)
   重置 ID: /aim-identity --reset(谨慎,会导致历史文档归属显示异常)
 ```
 
-#### --set-name mode
+#### --set-name 模式
 
-1. Validate new name (non-empty, reasonable length < 50 chars).
-2. Backup current identity.json.
-3. Update `name` field.
-4. Keep `id` unchanged.
-5. Inform user: docs already created will keep the old name in their `contributors` history (we don't rewrite history), but new docs will use the new name.
+1. 校验新名字(非空,长度合理 < 50 字符)。
+2. 备份当前 identity.json。
+3. 更新 `name` 字段。
+4. 保持 `id` 不变。
+5. 告知用户:已创建的文档在其 `contributors` 历史中保留旧名字(不重写历史),但新文档使用新名字。
 
 ```
 ✅ 名字已更新
@@ -81,9 +81,9 @@ Git:   zhu-taofeng(若已关联)
   如需同步历史,需手动运行 /aim-rebuild(会读取最新身份)。
 ```
 
-#### --reset mode (regenerate ID)
+#### --reset 模式(重新生成 ID)
 
-1. Strong warning first:
+1. 先强警告:
 
 ```
 🚨 重置用户 ID 是高风险操作
@@ -103,50 +103,50 @@ Git:   zhu-taofeng(若已关联)
 确认重置? (Y/n)
 ```
 
-2. On confirm: backup, regenerate, write.
-3. Suggest `/aim-rebuild` for each project to update ownership.
+2. 确认后:备份、重新生成、写入。
+3. 建议对每个项目运行 `/aim-rebuild` 更新归属。
 
-### Step 3: Output
+### 步骤 3:输出
 
-See format in each branch above.
+见上述各分支格式。
 
-## Edge Cases
+## 边界情况
 
-### Case A: identity.json doesn't exist
+### 情况 A:identity.json 不存在
 
-- Trigger creation flow (same as `/aim-init` Step 1).
-- Try git config user.name first, ask user to confirm.
+- 触发创建流程(同 `/aim-init` 步骤 1)。
+- 先尝试 git config user.name,询问用户确认。
 
-### Case B: identity.json corrupted
+### 情况 B:identity.json 损坏
 
-- Backup as `identity.json.bak.<timestamp>`.
-- Re-run creation flow.
-- Note: `原身份文件已备份为 identity.json.bak.xxx`。
+- 备份为 `identity.json.bak.<timestamp>`。
+- 重新运行创建流程。
+- 提示:`原身份文件已备份为 identity.json.bak.xxx`。
 
-### Case C: New name contains special characters
+### 情况 C:新名字含特殊字符
 
-- Allow Chinese, letters, numbers, spaces, hyphens, underscores.
-- Reject emojis and control chars.
-- On invalid: `名字包含不允许的字符,请使用中文/英文/数字/空格/连字符`。
+- 允许中文、字母、数字、空格、连字符、下划线。
+- 拒绝 emoji 和控制字符。
+- 无效时:`名字包含不允许的字符,请使用中文/英文/数字/空格/连字符`。
 
-### Case D: Read-only home directory
+### 情况 D:home 目录只读
 
-- Error: `无法写入 ~/.claude/ai-memory/,请检查权限`。
+- 报错:`无法写入 ~/.claude/ai-memory/,请检查权限`。
 
-## Output Style
+## 输出风格
 
-- Use Chinese throughout.
-- Show full ID (don't truncate).
-- Use 👤 📊 📝 ⚠️ 🚨 emojis.
-- Always show the impact of changes (don't let user blindly reset).
+- 全程中文。
+- 显示完整 ID(不要截断)。
+- 使用 👤 📊 📝 ⚠️ 🚨 emoji。
+- 始终展示变更影响(不要让用户盲目重置)。
 
-## Soft Sandbox Behavior
+## 软沙盒行为
 
-- Identity management is **global**, not project-scoped.
-- Any user can view the current identity.
-- Modifications should be done by the machine owner.
+- 身份管理是**全局**的,不随项目变化。
+- 任何用户都可查看当前身份。
+- 修改应由机器所有者执行。
 
-## Reference
+## 参考
 
-- Used by: `/aim-init` (creation), `/aim-add` (attribution), `/aim-rebuild` (resolution)
-- Stored at: `~/.claude/ai-memory/identity.json`
+- 被以下命令使用:`/aim-init`(创建)、`/aim-add`(归属)、`/aim-rebuild`(解析)
+- 存储于:`~/.claude/ai-memory/identity.json`

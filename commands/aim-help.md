@@ -1,71 +1,71 @@
 ---
 name: aim-help
-description: Show built-in help for all ai-memory commands. Lists every command with usage, prerequisites, and links to detailed docs. Read-only.
+description: 显示所有 ai-memory 命令的内置帮助。列出每个命令的用法、前置条件和详细文档链接。只读。
 ---
 
-# /aim-help — Built-in Help
+# /aim-help — 内置帮助
 
-## Purpose
+## 用途
 
-Display help for all ai-memory commands. Acts as an in-conversation manual so users don't need to leave Claude Code to look up syntax.
+显示所有 ai-memory 命令的帮助。作为对话内的手册,用户无需离开 Claude Code 即可查询语法。
 
-Use when:
-- First time using ai-memory
-- Forgot exact syntax of a command
-- Want to discover commands you haven't used
+适用场景:
+- 首次使用 ai-memory
+- 忘了某个命令的确切语法
+- 想发现还没用过的命令
 
-## Usage
+## 用法
 
 ```
 /aim-help [command-name]
 ```
 
-- No argument: show all commands grouped by category.
-- With command name (e.g., `/aim-help aim-add`): show detailed help for that specific command.
+- 无参数:按类别分组展示所有命令。
+- 带命令名(如 `/aim-help aim-add`):显示该命令的详细帮助。
 
-## Prerequisites
+## 前置条件
 
-None. Always works.
+无。始终可用。
 
-## Flow
+## 流程
 
-### Step 1: Determine Output Mode
+### 步骤 1:确定输出模式
 
-- If argument matches a known command name (e.g., `aim-add`, `aim-init`): **single-command mode**.
-- If no argument or unrecognized: **overview mode**.
+- 如果参数匹配已知命令名(如 `aim-add`、`aim-init`):**单命令模式**。
+- 如果无参数或无法识别:**概览模式**。
 
-### Step 2: Overview Mode — Render Command Catalog
+### 步骤 2:概览模式 — 渲染命令目录
 
-Read all `commands/*.md` files in the Skill directory. Extract from each:
-- `name` and `description` from frontmatter.
-- Usage line from the `## Usage` section.
-- Sandbox badge (from the table in SKILL.md).
+读取 Skill 目录下所有 `commands/*.md` 文件。从每个文件提取:
+- frontmatter 中的 `name` 和 `description`。
+- `## 用法` 章节中的用法行。
+- 沙盒徽章(来自 SKILL.md 中的表)。
 
-Group by category:
+按类别分组:
 
-| Category | Commands |
+| 类别 | 命令 |
 |---|---|
-| 🚀 入门 | `/aim-init`, `/aim-help`, `/aim-identity` |
-| 📝 日常记录 | `/aim-add`, `/aim-append`, `/aim-edit`, `/aim-archive` |
-| 🗜️ 压缩归档 | `/aim-compress`, `/aim-expand` |
-| 🔍 状态与维护 | `/aim-status`, `/aim-verify`, `/aim-rebuild` |
-| 🛠️ 管理 | `/aim-list`, `/aim-uninit` |
+| 🚀 入门 | `/aim-init`、`/aim-help`、`/aim-identity` |
+| 📝 日常记录 | `/aim-add`、`/aim-append`、`/aim-edit`、`/aim-archive` |
+| 🗜️ 压缩归档 | `/aim-compress`、`/aim-expand` |
+| 🔍 状态与维护 | `/aim-status`、`/aim-verify`、`/aim-rebuild` |
+| 🛠️ 管理 | `/aim-list`、`/aim-uninit` |
 
-Render output (see Output Style).
+渲染输出(见输出风格)。
 
-### Step 3: Single-Command Mode — Render Detail
+### 步骤 3:单命令模式 — 渲染详情
 
-Find `commands/<name>.md`. Extract:
-- Purpose (first paragraph).
-- Usage with all flags.
-- Prerequisites.
-- Quick example.
+查找 `commands/<name>.md`。提取:
+- 用途(首段)。
+- 含所有 flag 的用法。
+- 前置条件。
+- 快速示例。
 
-Display as a focused help card.
+作为聚焦的帮助卡片展示。
 
-### Step 4: Output
+### 步骤 4:输出
 
-#### Overview Output
+#### 概览输出
 
 ```
 📖 ai-memory 命令帮助
@@ -103,7 +103,7 @@ ai-memory 让 Claude Code 拥有跨会话的项目记忆能力。
   - 例: /aim-help aim-add
 ```
 
-#### Single-Command Output
+#### 单命令输出
 
 ```
 📖 /aim-add — 添加新文档
@@ -113,7 +113,7 @@ ai-memory 让 Claude Code 拥有跨会话的项目记忆能力。
   从不修改已有文档。用 /aim-append 扩展,用 /aim-edit 修改。
 
 用法
-  /aim-add [natural language content or description]
+  /aim-add [自然语言内容或描述]
 
   - 提供参数:直接使用作为内容
   - 无参数:提示用户输入
@@ -132,34 +132,34 @@ ai-memory 让 Claude Code 拥有跨会话的项目记忆能力。
 完整文档: commands/aim-add.md
 ```
 
-## Edge Cases
+## 边界情况
 
-### Case A: Command name not found
+### 情况 A:命令名未找到
 
-- Output: `未知命令 [xxx]。运行 /aim-help(无参数)查看所有命令列表`。
+- 输出:`未知命令 [xxx]。运行 /aim-help(无参数)查看所有命令列表`。
 
-### Case B: User asks for help on a command via natural language
+### 情况 B:用户通过自然语言求助某命令
 
-- e.g., `/aim-help how to add document` → recognize intent, route to `aim-add`.
+- 如 `/aim-help how to add document` → 识别意图,路由到 `aim-add`。
 
-### Case C: Commands directory missing or empty
+### 情况 C:commands 目录缺失或为空
 
-- Should never happen in normal install.
-- If it does: error `Skill 安装不完整,commands 目录缺失。请重新安装`。
+- 正常安装下不应发生。
+- 如发生:报错 `Skill 安装不完整,commands 目录缺失。请重新安装`。
 
-## Output Style
+## 输出风格
 
-- Use Chinese throughout.
-- Group commands with emoji headers (🚀 📝 🗜️ 🔍 🛠️).
-- Each command on one line with usage hint.
-- Keep overview under 25 lines (one screen).
-- For single-command view, use sections with headers (用途/用法/前置条件/示例/相关命令).
+- 全程中文。
+- 用 emoji 标题分组命令(🚀 📝 🗜️ 🔍 🛠️)。
+- 每个命令一行,带用法提示。
+- 概览保持在 25 行以内(一屏)。
+- 单命令视图用章节标题(用途/用法/前置条件/示例/相关命令)。
 
-## Soft Sandbox Behavior
+## 软沙盒行为
 
-- Public command — no restrictions.
+- 公共命令 — 无限制。
 
-## Reference
+## 参考
 
-- Auto-discovers from `commands/*.md`.
-- Cross-references SKILL.md for the sandbox table.
+- 自动从 `commands/*.md` 发现。
+- 交叉引用 SKILL.md 获取沙盒表。

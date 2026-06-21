@@ -1,64 +1,64 @@
 ---
 name: aim-append
-description: Append a new section to an existing document. Preserves original content, adds new section at the end. Triggers cross-user confirmation if doc owner differs.
+description: 向已有文档追加新章节。保留原内容,在末尾添加新章节。若文档所有者不同,会触发跨用户确认。
 ---
 
-# /aim-append — Append to Existing Document
+# /aim-append — 向已有文档追加内容
 
-## Purpose
+## 用途
 
-Add a new section to the end of an existing document, leaving the original content untouched. Useful for:
-- Adding updates to a decision log
-- Recording follow-up debugging notes
-- Adding new findings to an investigation doc
+在已有文档末尾追加新章节,原内容保持不变。适用于:
+- 给决策日志加更新
+- 记录后续调试笔记
+- 给调研文档添加新发现
 
-Differs from `/aim-edit` (which modifies existing content) and `/aim-add` (which creates a new file).
+与 `/aim-edit`(修改现有内容)和 `/aim-add`(创建新文件)不同。
 
-## Usage
+## 用法
 
 ```
 /aim-append <doc_id|filename> [content]
 ```
 
-- `doc_id` or `filename`: target document.
-- `content`: optional, the new section content. If omitted, prompt user.
+- `doc_id` 或 filename:目标文档。
+- `content`:可选,新章节内容。如省略,提示用户输入。
 
-## Prerequisites
+## 前置条件
 
-- Project initialized.
-- Target document exists (in INDEX.yaml `active` list, file on disk).
-- User identity established.
+- 项目已初始化。
+- 目标文档存在(在 INDEX.yaml 的 `active` 列表中,文件在磁盘上)。
+- 用户身份已建立。
 
-## Flow
+## 流程
 
-### Step 1: Resolve Current Project
+### 步骤 1:解析当前项目
 
-Same as `/aim-add` Step 1.
+同 `/aim-add` 步骤 1。
 
-### Step 2: Resolve User Identity
+### 步骤 2:解析用户身份
 
-Read `~/.claude/ai-memory/identity.json`. Required.
+读取 `~/.claude/ai-memory/identity.json`。必需。
 
-### Step 3: Resolve Target Document
+### 步骤 3:解析目标文档
 
-Match `<doc_id|filename>` argument:
-1. Try exact `doc_id` match in INDEX.yaml `active`.
-2. Try filename match (basename).
-3. Try partial title match (interactive confirm if multiple).
+匹配 `<doc_id|filename>` 参数:
+1. 尝试在 INDEX.yaml 的 `active` 中精确匹配 `doc_id`。
+2. 尝试匹配 filename(basename)。
+3. 尝试部分 title 匹配(多个则交互确认)。
 
-If not found in active: also check compressed doc's archive zone (cannot append to archived — suggest `/aim-expand` first or `/aim-add` instead).
+如果在 active 中找不到:也检查压缩文档的归档区(无法向归档追加 — 建议 `/aim-expand` 先展开,或改用 `/aim-add`)。
 
-If not found anywhere: `文档 [xxx] 不存在。/aim-list 查看所有文档`。
+如果任何地方都找不到:`文档 [xxx] 不存在。/aim-list 查看所有文档`。
 
-Save target entry as `DOC`.
+将目标条目保存为 `DOC`。
 
-### Step 4: Check Soft Sandbox (Cross-User)
+### 步骤 4:检查软沙盒(跨用户)
 
-Compare `DOC.owner` to current user ID.
+比较 `DOC.owner` 与当前用户 ID。
 
-**If same user**: proceed without confirmation.
+**同一用户**:无需确认,直接继续。
 
-**If different user** (cross-sandbox):
+**不同用户**(跨沙盒):
 
 ```
 ⚠️ 跨用户操作
@@ -72,33 +72,33 @@ Compare `DOC.owner` to current user ID.
 确认? (Y/n)
 ```
 
-Per project rule: no caching, every cross-user op requires fresh confirmation.
+按项目规则:不做缓存,每次跨用户操作都要重新确认。
 
-**If declined**: abort with `操作已取消`。
+**如果拒绝**:中止并提示 `操作已取消`。
 
-### Step 5: Collect New Section Content
+### 步骤 5:收集新章节内容
 
-If argument provided: use as `RAW_CONTENT`.
-Otherwise prompt:
+如果提供了参数:作为 `RAW_CONTENT`。
+否则提示:
 
 ```
 请输入要追加的内容(可以是补充说明、新发现、后续进展等):
 [等待用户输入]
 ```
 
-### Step 6: Determine Section Metadata
+### 步骤 6:确定章节元数据
 
-Ask user (with sensible defaults):
+询问用户(带合理默认):
 
 ```
 章节标题(可选,默认「更新 - YYYY-MM-DD」):
 ```
 
-Save as `SECTION_TITLE`.
+保存为 `SECTION_TITLE`。
 
-### Step 7: Generate HTML Section
+### 步骤 7:生成 HTML 章节
 
-Structure RAW_CONTENT into a self-contained HTML section:
+把 RAW_CONTENT 结构化为自包含 HTML 章节:
 
 ```html
 <section class="appendix">
@@ -108,45 +108,45 @@ Structure RAW_CONTENT into a self-contained HTML section:
 </section>
 ```
 
-If cross-user, add `data-cross-user` attribute and inline note.
+如果是跨用户,添加 `data-cross-user` 属性和内联标注。
 
-### Step 8: Insert into Document
+### 步骤 8:插入到文档
 
-1. Read target HTML file fully.
-2. Find the metadata block at the end (`<div class="highlight">文档元数据...</div>`).
-3. Insert the new section **before** the metadata block.
-4. Update the metadata header comment:
-   - Bump `version` by 1.
-   - Update `updated` to today.
-5. Save the file (atomic write: tmp + rename).
+1. 完整读取目标 HTML 文件。
+2. 找到末尾的元数据块(`<div class="highlight">文档元数据...</div>`)。
+3. 把新章节插入到元数据块**之前**。
+4. 更新元数据头注释:
+   - `version` 加 1。
+   - `updated` 更新为今天。
+5. 保存文件(原子写入:tmp + rename)。
 
-### Step 9: Update INDEX.yaml
+### 步骤 9:更新 INDEX.yaml
 
-For the target doc entry:
-- `version`: increment by 1.
-- `updated`: today.
-- `last_modified_by`: current user.
-- `tokens`: recompute from new file size.
-- Add to `contributors` if user not already listed:
+对目标文档条目:
+- `version`:加 1。
+- `updated`:今天。
+- `last_modified_by`:当前用户。
+- `tokens`:从新文件大小重新计算。
+- 如果用户还不在 `contributors` 中则添加:
   ```yaml
   contributors:
     - { user: "u-a3b2f1c9", name: "朱陶锋", last: "2026-06-21" }
   ```
 
-Update top-level `updated` to today.
+更新顶层 `updated` 为今天。
 
-### Step 10: Git Commit (Optional)
+### 步骤 10:Git 提交(可选)
 
-If in git:
+如果在 git 中:
 
 ```
 git add <filename> INDEX.yaml
 git commit -m "[aim-append] <PROJECT_NAME> - 追加 <SECTION_TITLE> 到 <filename> [cross-user:from <name>] (doc:<DOC_ID>)"
 ```
 
-Only include `[cross-user:from <name>]` if applicable.
+仅在适用时包含 `[cross-user:from <name>]`。
 
-### Step 11: Output Result
+### 步骤 11:输出结果
 
 ```
 ✅ 已追加内容
@@ -165,44 +165,44 @@ Only include `[cross-user:from <name>]` if applicable.
    - /aim-edit       如需修改已有内容
 ```
 
-## Edge Cases
+## 边界情况
 
-### Case A: Target document is in compressed/archived state
+### 情况 A:目标文档处于压缩/归档状态
 
-- Cannot append to compressed (it's `__project__`-owned, frozen).
-- Suggest: `/aim-add` to create a new doc with the new content instead.
+- 无法向压缩文档追加(它是 `__project__` 所有,冻结状态)。
+- 建议:改用 `/aim-add` 用新内容创建新文档。
 
-### Case B: Document file is corrupted (no metadata header)
+### 情况 B:文档文件损坏(无元数据头)
 
-- Detect: cannot parse `<!-- aim:... -->`.
-- Stop: `文档元数据缺失,可能损坏。运行 /aim-rebuild 修复后再试`。
+- 检测:无法解析 `<!-- aim:... -->`。
+- 停止:`文档元数据缺失,可能损坏。运行 /aim-rebuild 修复后再试`。
 
-### Case C: Cross-user confirmation declined
+### 情况 C:跨用户确认被拒绝
 
-- Abort cleanly. No file changes.
+- 干净中止。无文件变更。
 
-### Case D: Content too large (>3000 tokens for a single append)
+### 情况 D:内容过大(单次追加 >3000 tokens)
 
-- Warn: `追加内容较长(X tokens),建议拆分为独立文档 /aim-add。是否继续? (Y/n)`。
+- 警告:`追加内容较长(X tokens),建议拆分为独立文档 /aim-add。是否继续? (Y/n)`。
 
-### Case E: Document version gets high (>10)
+### 情况 E:文档版本变高(>10)
 
-- After many appends, suggest: `文档已追加 10+ 次,建议 /aim-compress 整合到压缩文档`。
+- 多次追加后建议:`文档已追加 10+ 次,建议 /aim-compress 整合到压缩文档`。
 
-## Output Style
+## 输出风格
 
-- Chinese throughout.
-- Show version bump explicitly.
-- Cross-user operations: always show the cross-user marker in output.
-- Emojis: ✅ 📋 📁 📝 ⚠️
+- 全程中文。
+- 显式显示版本号递增。
+- 跨用户操作:输出中始终显示跨用户标记。
+- emoji:✅ 📋 📁 📝 ⚠️
 
-## Soft Sandbox Behavior
+## 软沙盒行为
 
-- Own docs: free append, no confirmation.
-- Others' docs: explicit confirmation every time, no caching.
-- Compressed doc (`owner=__project__`): treated as cross-user for everyone (since it's shared).
+- 自己的文档:自由追加,无需确认。
+- 他人的文档:每次显式确认,无缓存。
+- 压缩文档(`owner=__project__`):对所有人都视为跨用户(因为它是共享的)。
 
-## Reference
+## 参考
 
-- Companion commands: `/aim-add`, `/aim-edit`, `/aim-archive`
-- Concept: `reference/soft-sandbox.md`
+- 配套命令:`/aim-add`、`/aim-edit`、`/aim-archive`
+- 概念:`reference/soft-sandbox.md`

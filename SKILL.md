@@ -1,6 +1,6 @@
 ---
 name: ai-memory
-description: Cross-session project memory layer for Claude Code. Provides document sedimentation, compression, archiving, and retrieval capabilities. Install once, gain persistent project knowledge across sessions.
+description: Claude Code 的跨会话项目记忆层。提供文档沉淀、压缩、归档与检索能力。安装一次,即可获得跨会话的持久项目知识。
 version: 0.1.0
 author: ai-memory
 license: MIT
@@ -8,144 +8,144 @@ license: MIT
 
 # ai-memory
 
-> Cross-session memory layer for AI coding assistants — every new session, AI doesn't need to rediscover your project, it reads your accumulated project knowledge directly.
+> AI 编程助手的跨会话记忆层 — 每次新会话,AI 无需重新探索你的项目,可直接读取你累积的项目知识。
 
-## What This Skill Does
+## 这个 Skill 做什么
 
-`ai-memory` gives Claude Code persistent project memory across sessions. Instead of rediscovering the project each time, Claude reads your accumulated knowledge directly.
+`ai-memory` 让 Claude Code 在跨会话间拥有持久的项目记忆。Claude 不再每次重新探索项目,而是直接读取你累积的知识。
 
-**Core capabilities:**
-- 📝 Document sedimentation (`/aim-add`)
-- 🗜️ Smart compression with 3-stage pipeline (`/aim-compress`)
-- 📊 Status monitoring (`/aim-status`)
-- 🔍 Reverse retrieval from snapshots (`/aim-expand`)
-- 👥 Multi-user collaboration with soft sandbox
-- 🧹 Auto-rebuild and verification
+**核心能力:**
+- 📝 文档沉淀(`/aim-add`)
+- 🗜️ 智能 3 阶段流水线压缩(`/aim-compress`)
+- 📊 状态监控(`/aim-status`)
+- 🔍 从快照反向检索(`/aim-expand`)
+- 👥 软沙盒多用户协作
+- 🧹 自动重建与校验
 
-## Commands
+## 命令
 
-| Command | Purpose | Sandbox |
+| 命令 | 用途 | 沙盒 |
 |---|---|---|
-| `/aim-init` | Initialize project memory (one-time) | ❌ |
-| `/aim-add` | Add new document (always creates new file) | ✅ |
-| `/aim-append` | Append section to existing document | ✅ |
-| `/aim-edit` | Modify existing document | ✅ |
-| `/aim-archive` | Archive document to snapshots | ✅ |
-| `/aim-compress` | Compress active docs into single file (3-stage pipeline) | ⚠️ special |
-| `/aim-status` | Show project status, token usage, Git drift | ❌ |
-| `/aim-rebuild` | Rebuild INDEX.yaml from filesystem | ❌ |
-| `/aim-verify` | Check INDEX.yaml vs filesystem consistency | ❌ |
-| `/aim-expand` | Reverse-search snapshots for detail | ❌ |
-| `/aim-list` | List all projects with ai-memory | ❌ |
-| `/aim-help` | Show help for all commands | ❌ |
-| `/aim-uninit` | Remove Skill injections (keep user data) | ❌ |
-| `/aim-identity` | View or modify user identity | ❌ |
+| `/aim-init` | 初始化项目记忆(一次性) | ❌ |
+| `/aim-add` | 添加新文档(总是创建新文件) | ✅ |
+| `/aim-append` | 向已有文档追加章节 | ✅ |
+| `/aim-edit` | 修改已有文档 | ✅ |
+| `/aim-archive` | 把文档归档到快照 | ✅ |
+| `/aim-compress` | 把活跃文档压缩为单文件(3 阶段流水线) | ⚠️ 特殊 |
+| `/aim-status` | 显示项目状态、token 使用、Git 漂移 | ❌ |
+| `/aim-rebuild` | 从文件系统重建 INDEX.yaml | ❌ |
+| `/aim-verify` | 检查 INDEX.yaml 与文件系统一致性 | ❌ |
+| `/aim-expand` | 反向搜索快照获取细节 | ❌ |
+| `/aim-list` | 列出所有 ai-memory 项目 | ❌ |
+| `/aim-help` | 显示所有命令的帮助 | ❌ |
+| `/aim-uninit` | 移除 Skill 注入(保留用户数据) | ❌ |
+| `/aim-identity` | 查看或修改用户身份 | ❌ |
 
-See `commands/` directory for each command's detailed flow.
+各命令的详细流程见 `commands/` 目录。
 
-## Core Concepts
+## 核心概念
 
-### Two Storage Modes
+### 两种存储模式
 
-- **Central mode (default)**: All projects share one document root (e.g., `~/Desktop/persistent-document/`). One CLAUDE.md manages all projects. Best for individuals managing multiple private projects.
-- **Distributed mode**: Each project embeds `.ai-memory/` inside its codebase. Best for team collaboration and open source.
+- **集中式模式(默认)**:所有项目共享一个文档根(如 `~/Desktop/persistent-document/`)。一个 CLAUDE.md 管理所有项目。适合管理多个私有项目的个人。
+- **分散式模式**:每个项目在自己的代码库内嵌入 `.ai-memory/`。适合团队协作和开源。
 
-### Soft Sandbox (Multi-user Collaboration)
+### 软沙盒(多用户协作)
 
-Each user has a global identity (`~/.claude/ai-memory/identity.json`). By default, users can only directly modify their own documents. Cross-user operations require explicit confirmation **every time** (no caching).
+每个用户拥有全局身份(`~/.claude/ai-memory/identity.json`)。默认情况下,用户只能直接修改自己的文档。跨用户操作**每次**都需显式确认(不做缓存)。
 
-### Document Lifecycle
+### 文档生命周期
 
 ```
 /aim-add  →  memory/*.html  →  /aim-compress  →  snapshots/YYYY-MM-DD/
                                   ↓
                           compressed.html
-                  (dual-zone: active + archive)
+                  (双区:活跃 + 归档)
 ```
 
-### Dual-Zone Compression
+### 双区压缩
 
-The compressed document has two fixed zones:
-- **Active zone**: Current valid knowledge (AI reads this first)
-- **Archive zone**: Deprecated content marked `[deprecated]` (soft delete, not removed)
+压缩文档有两个固定区:
+- **活跃区**:当前有效知识(AI 优先读取)
+- **归档区**:标记为 `[deprecated]` 的弃用内容(软删除,不移除)
 
-This prevents bloat without losing information.
+这样既防止膨胀,又不丢失信息。
 
-### Metadata Embedding
+### 元数据嵌入
 
-Each document has metadata in HTML comments at the top:
+每个文档在顶部 HTML 注释中有元数据:
 ```html
 <!-- aim:doc_id=aim-20260610-a3b2f1 title=... tags=... created=... created_by=... owner=... status=... -->
 ```
 
-INDEX.yaml is a **rebuildable cache**, not the source of truth. The filesystem is the source of truth.
+INDEX.yaml 是**可重建的缓存**,不是事实源。文件系统才是事实源。
 
-## Usage Flow
+## 使用流程
 
-### First Time
+### 首次使用
 ```
 1. /aim-init [project-name]
-   → Choose mode (central/distributed)
-   → Choose document root path
-   → Generate INDEX.yaml
-   → Inject rules into CLAUDE.md (append, don't overwrite)
+   → 选择模式(集中式/分散式)
+   → 选择文档根路径
+   → 生成 INDEX.yaml
+   → 把规则注入 CLAUDE.md(追加,不覆盖)
 
-2. /aim-add [natural language description]
-   → Claude structures content into HTML
-   → Embeds metadata header
-   → Updates INDEX.yaml
+2. /aim-add [自然语言描述]
+   → Claude 把内容结构化为 HTML
+   → 嵌入元数据头
+   → 更新 INDEX.yaml
 
 3. /aim-status
-   → Verify setup is working
+   → 验证设置已生效
 ```
 
-### Daily Workflow
+### 日常工作流
 ```
-/aim-add       → Record knowledge (anytime)
-/aim-status    → Check state (occasionally)
-/aim-compress  → Compress when 3-5 docs accumulated
+/aim-add       → 记录知识(随时)
+/aim-status    → 检查状态(偶尔)
+/aim-compress  → 攒到 3-5 篇时压缩
 ```
 
-## Architecture
+## 架构
 
 ```
 ai-memory/
-├── SKILL.md                  ← This file (entry point)
-├── commands/                 ← One .md per slash command
-├── prompts/                  ← Reusable Prompt templates (3-stage pipeline)
+├── SKILL.md                  ← 本文件(入口)
+├── commands/                 ← 每个斜杠命令一个 .md
+├── prompts/                  ← 可复用 Prompt 模板(3 阶段流水线)
 │   ├── 01-analyze.md
 │   ├── 02-merge.md
 │   ├── 03-verify.md
 │   └── shared-rules.md
-├── templates/                ← File templates
+├── templates/                ← 文件模板
 │   ├── INDEX.yaml.tpl
 │   ├── claude-md-rules.md.tpl
 │   ├── doc-template.html.tpl
 │   └── compressed-template.html.tpl
-└── reference/                ← Internal reference docs
+└── reference/                ← 内部参考文档
 ```
 
-## Version
+## 版本
 
-Current: `0.1.0` (MVP)
+当前:`0.1.0`(MVP)
 
-See CHANGELOG.md for version history. The Skill checks GitHub for newer versions on startup and prompts the user if an update is available.
+版本历史见 CHANGELOG.md。Skill 启动时检查 GitHub 是否有更新,并在有新版本时提示用户。
 
-## Design Principles
+## 设计原则
 
-1. **Filesystem is source of truth** — INDEX.yaml is rebuildable cache
-2. **Soft constraints over hard permissions** — confirmation, not blocking
-3. **Conservative compression** — better to keep than to lose
-4. **Rule-based verification** — regex extract hard info, don't trust LLM self-check
-5. **Skill body and user data completely separated** — uninstall keeps data
+1. **文件系统是事实源** — INDEX.yaml 是可重建缓存
+2. **软约束优于硬权限** — 用确认代替阻断
+3. **保守压缩** — 宁可保留也不丢失
+4. **基于规则的校验** — 用正则提取硬信息,不信任 LLM 自检
+5. **Skill 本体与用户数据完全分离** — 卸载保留数据
 
-## Reference Documents
+## 参考文档
 
-- `reference/document-lifecycle.md` — Document state transitions
-- `reference/three-stage-pipeline.md` — Compression pipeline details
-- `reference/rule-diff-verification.md` — How hard info verification works
-- `reference/central-vs-distributed.md` — Mode comparison
-- `reference/soft-sandbox.md` — Collaboration model
+- `reference/document-lifecycle.md` — 文档状态流转
+- `reference/three-stage-pipeline.md` — 压缩流水线细节
+- `reference/rule-diff-verification.md` — 硬信息校验原理
+- `reference/central-vs-distributed.md` — 模式对比
+- `reference/soft-sandbox.md` — 协作模型
 
 ## License
 

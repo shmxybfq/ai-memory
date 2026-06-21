@@ -1,65 +1,65 @@
 ---
 name: aim-uninit
-description: Remove ai-memory Skill injections from a project. Keeps all user data (docs, snapshots, INDEX.yaml). Reversible by re-running /aim-init.
+description: 从项目中移除 ai-memory Skill 注入。保留所有用户数据(文档、快照、INDEX.yaml)。重新运行 /aim-init 可恢复。
 ---
 
-# /aim-uninit — Remove Skill Injections
+# /aim-uninit — 移除 Skill 注入
 
-## Purpose
+## 用途
 
-Remove ai-memory's footprint from a project without deleting user data. Specifically:
-- Strips the ai-memory rules block from `CLAUDE.md` (between markers).
-- Removes project entry from `~/.claude/ai-memory/projects.json` (central mode).
-- Keeps all documents, snapshots, INDEX.yaml, compressed docs intact.
+从项目中移除 ai-memory 的痕迹,但不删除用户数据。具体:
+- 从 `CLAUDE.md` 中剥离 ai-memory 规则块(标记之间)。
+- 从 `~/.claude/ai-memory/projects.json` 中移除项目条目(集中式模式)。
+- 保持所有文档、快照、INDEX.yaml、压缩文档不变。
 
-Use this command when:
-- You want to stop using ai-memory on a specific project
-- You're handing off a project and want to clean up
-- You want to reset and re-initialize from scratch (alternative: delete INDEX.yaml manually)
+适用场景:
+- 想停止在某个项目上使用 ai-memory
+- 移交项目并想清理
+- 想从头重置并重新初始化(替代方案:手动删除 INDEX.yaml)
 
-**Reversible**: re-running `/aim-init` on the same project will redetect existing data and re-inject rules.
+**可逆**:对同一项目重新运行 `/aim-init` 会重新检测已有数据并重新注入规则。
 
-## Usage
+## 用法
 
 ```
 /aim-uninit [--project <name|path>] [--purge] [--global]
 ```
 
-- No argument: uninit the current project (resolved from cwd).
-- `--project <name>`: uninit a specific project by name or path.
-- `--purge`: **also delete user data** (docs, snapshots, INDEX.yaml). DANGEROUS. Requires double confirmation.
-- `--global`: uninstall the Skill entirely (removes `~/.claude/skills/ai-memory/` or symlink). Does not touch any project data.
+- 无参数:卸载当前项目(从 cwd 解析)。
+- `--project <name>`:按名称或路径卸载指定项目。
+- `--purge`:**同时删除用户数据**(文档、快照、INDEX.yaml)。危险。需双重确认。
+- `--global`:完全卸载 Skill(移除 `~/.claude/skills/ai-memory/` 或符号链接)。不触碰任何项目数据。
 
-## Prerequisites
+## 前置条件
 
-For project-level uninit:
-- Project must be currently initialized (rules in CLAUDE.md, entry in projects.json).
+项目级卸载:
+- 项目当前必须已初始化(CLAUDE.md 中有规则,projects.json 中有条目)。
 
-For global uninstall:
-- Skill must be installed at `~/.claude/skills/ai-memory/`.
+全局卸载:
+- Skill 必须安装在 `~/.claude/skills/ai-memory/`。
 
-## Flow
+## 流程
 
-### Step 1: Determine Scope
+### 步骤 1:确定范围
 
-Parse flags:
-- `--global` → skip to Step 8 (global uninstall).
-- `--purge` → enable destructive mode (Step 7).
-- Otherwise: project-level uninit.
+解析 flag:
+- `--global` → 跳到步骤 8(全局卸载)。
+- `--purge` → 启用破坏性模式(步骤 7)。
+- 其他:项目级卸载。
 
-### Step 2: Resolve Target Project
+### 步骤 2:解析目标项目
 
-If `--project` provided:
-- Match by name (lookup in projects.json).
-- Or match by path prefix.
+如果提供了 `--project`:
+- 按名称匹配(在 projects.json 中查找)。
+- 或按路径前缀匹配。
 
-Otherwise: resolve from cwd (same logic as `/aim-add` Step 1).
+否则:从 cwd 解析(同 `/aim-add` 步骤 1)。
 
-If no project found: `当前目录不在任何 ai-memory 项目中,无需卸载`。
+如果未找到项目:`当前目录不在任何 ai-memory 项目中,无需卸载`。
 
-### Step 3: Show What Will Be Removed
+### 步骤 3:展示将被移除的内容
 
-Before any changes, show a clear preview:
+变更前,展示清晰预览:
 
 ```
 ⚠️ 即将从项目 [视频项目] 移除 ai-memory
@@ -77,47 +77,47 @@ Before any changes, show a clear preview:
 确认卸载? (Y/n)
 ```
 
-Wait for explicit confirmation. Default n.
+等待显式确认。默认 n。
 
-### Step 4: Strip CLAUDE.md Rules
+### 步骤 4:剥离 CLAUDE.md 规则
 
-Read CLAUDE.md. Locate the ai-memory rules block:
+读取 CLAUDE.md。定位 ai-memory 规则块:
 
 ```
 <!-- ai-memory rules start -->
-... (rules content) ...
+... (规则内容) ...
 <!-- ai-memory rules end -->
 ```
 
-Remove the block including the markers. Preserve everything else in CLAUDE.md.
+移除该块(含标记)。保留 CLAUDE.md 中其他所有内容。
 
-Edge cases:
-- If markers not found: note `CLAUDE.md 中未找到 ai-memory 规则,跳过此步`。
-- If CLAUDE.md doesn't exist: skip.
-- If after removal CLAUDE.md is empty or only whitespace: leave it as empty file (don't delete, user may have plans for it).
+边界情况:
+- 如果未找到标记:提示 `CLAUDE.md 中未找到 ai-memory 规则,跳过此步`。
+- 如果 CLAUDE.md 不存在:跳过。
+- 如果移除后 CLAUDE.md 为空或仅空白:保留为空文件(不要删除,用户可能对它有规划)。
 
-Backup CLAUDE.md to `CLAUDE.md.bak.<timestamp>` before edit.
+编辑前备份 CLAUDE.md 为 `CLAUDE.md.bak.<timestamp>`。
 
-### Step 5: Remove from projects.json
+### 步骤 5:从 projects.json 移除
 
-Read `~/.claude/ai-memory/projects.json`. Remove the entry for this project's root.
+读取 `~/.claude/ai-memory/projects.json`。移除该项目根的条目。
 
-If this was the last project under a root, optionally remove the root entry too.
+如果这是某根下最后一个项目,可选择也移除该根条目。
 
-Write back. Backup first.
+写回。先备份。
 
-### Step 6: Leave Data Intact
+### 步骤 6:保留数据不动
 
-Explicitly do NOT touch:
-- `<root>/*.html` (active docs)
+显式不触碰:
+- `<root>/*.html`(活跃文档)
 - `<root>/compressed-*.html`
 - `<root>/snapshots/`
 - `<root>/INDEX.yaml`
-- `~/.claude/ai-memory/identity.json` (global, not project-specific)
+- `~/.claude/ai-memory/identity.json`(全局,非项目特定)
 
-### Step 7: Purge Mode (only if --purge)
+### 步骤 7:Purge 模式(仅在 --purge 时)
 
-If `--purge` flag set, after Step 3 confirmation, ask again with stronger warning:
+如果设置了 `--purge`,在步骤 3 确认之后,用更强警告再次询问:
 
 ```
 🚨 危险操作确认 🚨
@@ -134,16 +134,16 @@ If `--purge` flag set, after Step 3 confirmation, ask again with stronger warnin
 > _
 ```
 
-User must type the exact project name. If mismatch: abort.
+用户必须键入确切项目名。不匹配:中止。
 
-On confirm:
-1. Move entire project memory dir to `~/.Trash/ai-memory-purge-<project>-<timestamp>/` (macOS Trash, recoverable for 30+ days).
-2. Do NOT `rm -rf` directly — always go through Trash.
-3. Remove from projects.json (already done in Step 5).
+确认后:
+1. 把整个项目记忆目录移到 `~/.Trash/ai-memory-purge-<project>-<timestamp>/`(macOS 废纸篓,30+ 天内可恢复)。
+2. 不要直接 `rm -rf` — 始终走废纸篓。
+3. 从 projects.json 移除(步骤 5 已完成)。
 
-### Step 8: Global Uninstall (only if --global)
+### 步骤 8:全局卸载(仅在 --global 时)
 
-If `--global`:
+如果 `--global`:
 
 ```
 ⚠️ 全局卸载 ai-memory Skill
@@ -157,14 +157,14 @@ If `--global`:
 确认全局卸载? (Y/n)
 ```
 
-On confirm:
-1. If `~/.claude/skills/ai-memory` is a symlink: just remove the symlink.
-2. If it's a real directory: move to Trash (recoverable).
-3. Keep `~/.claude/ai-memory/` (user data: identity, projects.json) — that's data, not Skill.
+确认后:
+1. 如果 `~/.claude/skills/ai-memory` 是符号链接:只移除符号链接。
+2. 如果是真实目录:移到废纸篓(可恢复)。
+3. 保留 `~/.claude/ai-memory/`(用户数据:identity、projects.json)— 那是数据,不是 Skill。
 
-### Step 9: Output
+### 步骤 9:输出
 
-#### Project-level uninit (no --purge)
+#### 项目级卸载(无 --purge)
 
 ```
 ✅ ai-memory 已从项目 [视频项目] 移除
@@ -185,7 +185,7 @@ On confirm:
   (会自动检测并复用现有数据)
 ```
 
-#### With --purge
+#### 带 --purge
 
 ```
 ✅ 项目 [视频项目] 已彻底清除
@@ -199,7 +199,7 @@ On confirm:
   /aim-init 视频项目
 ```
 
-#### Global uninstall
+#### 全局卸载
 
 ```
 ✅ ai-memory Skill 已全局卸载
@@ -215,51 +215,51 @@ On confirm:
   git clone https://github.com/shmxybfq/ai-memory ~/.claude/skills/ai-memory
 ```
 
-## Edge Cases
+## 边界情况
 
-### Case A: Project not initialized (no markers in CLAUDE.md, no projects.json entry)
+### 情况 A:项目未初始化(CLAUDE.md 中无标记,projects.json 中无条目)
 
-- Output: `项目 [xxx] 未启用 ai-memory,无需卸载`。
+- 输出:`项目 [xxx] 未启用 ai-memory,无需卸载`。
 
-### Case B: CLAUDE.md is read-only
+### 情况 B:CLAUDE.md 只读
 
-- Error: `无法修改 CLAUDE.md,请检查文件权限`。
-- Suggest: `sudo chown $(whoami) CLAUDE.md` or manual edit.
+- 报错:`无法修改 CLAUDE.md,请检查文件权限`。
+- 建议:`sudo chown $(whoami) CLAUDE.md` 或手动编辑。
 
-### Case C: projects.json corrupted
+### 情况 C:projects.json 损坏
 
-- Skip that step.
-- Note: `projects.json 解析失败,请手动清理项目条目`。
+- 跳过该步骤。
+- 提示:`projects.json 解析失败,请手动清理项目条目`。
 
-### Case D: --purge on a project with no data (only CLAUDE.md injection)
+### 情况 D:对无数据项目(只有 CLAUDE.md 注入)执行 --purge
 
-- Just remove the injection.
-- Note: `项目无实际数据,仅清理 CLAUDE.md`。
+- 只移除注入。
+- 提示:`项目无实际数据,仅清理 CLAUDE.md`。
 
-### Case E: User tries --purge --global together
+### 情况 E:用户尝试同时使用 --purge 和 --global
 
-- Block: `--purge 与 --global 不可同时使用。--global 仅移除 Skill 本体,--purge 针对单个项目数据`。
+- 阻止:`--purge 与 --global 不可同时使用。--global 仅移除 Skill 本体,--purge 针对单个项目数据`。
 
-### Case F: macOS Trash is unavailable (Linux/non-Mac)
+### 情况 F:macOS 废纸篓不可用(Linux/非 Mac)
 
-- Fall back to `~/.ai-memory-trash/<timestamp>/` directory.
-- Note this location in output.
+- 回退到 `~/.ai-memory-trash/<timestamp>/` 目录。
+- 在输出中提示此位置。
 
-## Output Style
+## 输出风格
 
-- Use Chinese throughout.
-- Use ⚠️ for irreversible/dangerous steps.
-- Use 🚨 for purge mode.
-- Always show backups and Trash paths.
-- End with 📝 重新开始/重新启用 section showing recovery path.
+- 全程中文。
+- 不可逆/危险步骤用 ⚠️。
+- purge 模式用 🚨。
+- 始终显示备份和废纸篓路径。
+- 末尾给出 📝 重新开始/重新启用 章节,展示恢复路径。
 
-## Soft Sandbox Behavior
+## 软沙盒行为
 
-- Uninit is a **destructive administrative operation**.
-- For multi-user projects, require confirmation from project owner (or anyone if owner unknown).
-- `--purge` requires the project-name-typing confirmation regardless of user.
+- 卸载是**破坏性管理操作**。
+- 多用户项目需项目所有者确认(所有者未知时任何人可确认)。
+- `--purge` 无论用户是谁,都要求键入项目名确认。
 
-## Reference
+## 参考
 
-- Companion commands: `/aim-init` (reverse operation)
-- Concept: "Skill body and user data completely separated" (Design Principle 5 in SKILL.md)
+- 配套命令:`/aim-init`(反向操作)
+- 概念:"Skill 本体与用户数据完全分离"(SKILL.md 设计原则 5)

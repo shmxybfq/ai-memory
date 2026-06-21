@@ -1,97 +1,97 @@
 ---
 name: aim-compress
-description: Merge active documents into a single compressed HTML file with dual-zone (active + archive). MVP version: single-pass LLM merge with rule-based verification. Use when 3+ active docs accumulated.
+description: 将活跃文档合并为单一压缩 HTML 文件,采用双区(活跃 + 归档)结构。MVP 版本:单轮 LLM 合并配合基于规则的校验。当活跃文档累计 3+ 篇时使用。
 ---
 
-# /aim-compress — Compress Active Documents (MVP)
+# /aim-compress — 压缩活跃文档(MVP)
 
-## Purpose
+## 用途
 
-Consolidate multiple active documents into **one** compressed HTML file, organized into two zones:
-- **当前有效区**: Current valid knowledge, AI reads this by default in new sessions.
-- **历史归档区**: Deprecated/superseded content, kept for traceability but soft-deleted from active reading.
+把多份活跃文档整合为**一个**压缩 HTML 文件,组织成两个区:
+- **当前有效区**:当前有效知识,新会话默认从这里读取。
+- **历史归档区**:已弃用/被替代的内容,保留用于追溯,但从活跃读取中软删除。
 
-After compression, the original active docs are moved to `snapshots/YYYY-MM-DD/` (recoverable), and INDEX.yaml `active` list is cleared.
+压缩后,原活跃文档会被移到 `snapshots/YYYY-MM-DD/`(可恢复),INDEX.yaml 的 `active` 列表被清空。
 
-**This is the MVP version**: single-pass LLM merge with rule-based verification on hard info (versions, file paths, commands, config values). The full three-stage pipeline (analyze → merge → verify with retry) is deferred to v0.2.
+**这是 MVP 版本**:单轮 LLM 合并,对硬信息(版本号、文件路径、命令、配置值)做基于规则的校验。完整的三阶段流水线(分析 → 合并 → 校验并重试)推迟到 v0.2。
 
-Use this command when:
-- 3+ active docs accumulated (`/aim-status` will suggest this)
-- About to start a major phase shift (e.g., architecture migration)
-- Tokens in active list exceed comfortable reading budget (~30k)
+适用场景:
+- 活跃文档累计 3+ 篇(`/aim-status` 会提示)
+- 即将开始重大阶段切换(如架构迁移)
+- 活跃列表 tokens 超出舒适阅读预算(~30k)
 
-## Usage
+## 用法
 
 ```
 /aim-compress [--dry-run] [--include <doc_id1,doc_id2,...>] [--exclude <doc_id1,...>]
 ```
 
-- `--dry-run`: Show what would be compressed and the proposed outline, without writing.
-- `--include`: Compress only the listed doc_ids (default: all active).
-- `--exclude`: Compress all active except the listed ones.
+- `--dry-run`:展示将要压缩什么以及提案大纲,但不写入。
+- `--include`:只压缩列出的 doc_id(默认:全部活跃)。
+- `--exclude`:压缩全部活跃,但排除列出的。
 
-No argument: compress all active docs.
+无参数:压缩全部活跃文档。
 
-## Prerequisites
+## 前置条件
 
-- Project initialized.
-- At least 1 active document (warn if < 3, allow override).
-- INDEX.yaml consistent (recommend `/aim-verify` first if unsure).
-- User has write access to project root.
+- 项目已初始化。
+- 至少 1 篇活跃文档(< 3 时警告,允许覆盖)。
+- INDEX.yaml 一致(不确定时建议先 `/aim-verify`)。
+- 用户对项目根目录有写权限。
 
-## Flow
+## 流程
 
-### Step 1: Resolve Current Project
+### 步骤 1:解析当前项目
 
-Same logic as `/aim-add` Step 1.
+同 `/aim-add` 步骤 1。
 
-### Step 2: Resolve User Identity
+### 步骤 2:解析用户身份
 
-Read `~/.claude/ai-memory/identity.json`. Required — compression tags the operator.
+读取 `~/.claude/ai-memory/identity.json`。必需 — 压缩会记录操作者。
 
-### Step 3: Select Source Documents
+### 步骤 3:选择源文档
 
-Default: all entries in `INDEX.yaml` `active`.
+默认:`INDEX.yaml` 中 `active` 列表的所有条目。
 
-Apply `--include` / `--exclude` filters if provided.
+按需应用 `--include` / `--exclude` 过滤。
 
-Validate:
-- All selected doc_ids exist in INDEX.
-- All corresponding files exist on disk.
-- At least 1 doc remains after filtering.
+校验:
+- 选中的所有 doc_id 都在 INDEX 中存在。
+- 对应的所有文件都在磁盘上存在。
+- 过滤后至少还剩 1 篇文档。
 
-If < 3 docs selected: warn `仅 N 篇文档,通常建议积累到 3+ 再压缩。是否继续? (Y/n)`.
+如果选中 < 3 篇:警告 `仅 N 篇文档,通常建议积累到 3+ 再压缩。是否继续? (Y/n)`。
 
-### Step 4: Read All Source Documents
+### 步骤 4:读取所有源文档
 
-For each selected doc:
+对每篇选中文档:
 
-1. Read full HTML content.
-2. Extract body (strip `<head>`, `<style>`).
-3. Note metadata: title, owner, created, source, tags.
-4. Append to `SOURCE_DOCS` list with positional index.
+1. 读取完整 HTML 内容。
+2. 提取 body(剥离 `<head>`、`<style>`)。
+3. 记录元数据:title、owner、created、source、tags。
+4. 按位置索引追加到 `SOURCE_DOCS` 列表。
 
-### Step 5: Check Existing Compressed Doc
+### 步骤 5:检查已有压缩文档
 
-If `INDEX.yaml` `compressed` already has an entry:
+如果 `INDEX.yaml` 的 `compressed` 已有条目:
 
-1. Read the existing compressed file.
-2. Note its current active zone and archive zone.
-3. Set `MERGE_MODE = incremental` (merge new docs into existing compressed doc).
-4. Inform user: `检测到已有压缩文档,本次将合并新增内容并归档旧版本`
+1. 读取已有压缩文件。
+2. 记录其当前有效区和归档区。
+3. 设置 `MERGE_MODE = incremental`(把新文档合并进已有压缩文档)。
+4. 告知用户:`检测到已有压缩文档,本次将合并新增内容并归档旧版本`
 
-Otherwise: `MERGE_MODE = fresh`.
+否则:`MERGE_MODE = fresh`。
 
-### Step 6: Generate Compressed Content (LLM Pass)
+### 步骤 6:生成压缩内容(LLM 轮)
 
-This is the core step. Use the LLM (yourself) to consolidate.
+这是核心步骤。使用 LLM(也就是你自己)进行整合。
 
-**Input to LLM**:
-- All source docs (full text).
-- For incremental mode: existing compressed doc content.
-- Project name, current date, operator identity.
+**LLM 输入**:
+- 所有源文档(全文)。
+- 增量模式下:已有压缩文档内容。
+- 项目名、当前日期、操作者身份。
 
-**Instructions to LLM** (the prompt you should follow internally):
+**LLM 指令**(你内部应遵循的提示):
 
 ```
 你是项目记忆压缩助手。请将以下文档合并为单一 HTML 文档。
@@ -139,66 +139,66 @@ This is the core step. Use the LLM (yourself) to consolidate.
 - 操作者: {{USER_NAME}} ({{USER_ID}})
 ```
 
-**Output**: a complete HTML document following the compressed template.
+**输出**:遵循压缩模板的完整 HTML 文档。
 
-**Metadata header must include `sources=` field** (critical for `/aim-rebuild`):
+**元数据头必须包含 `sources=` 字段**(对 `/aim-rebuild` 至关重要):
 
 ```html
 <!-- aim:doc_id=aim-YYYYMMDD-xxxxxx title=项目压缩文档-PROJECT tags=compressed created=YYYY-MM-DD created_by=u-xxx owner=__project__ status=active source=compress version=1 sources=aim-yyy1,aim-yyy2,aim-yyy3 -->
 ```
 
-The `sources=` value is a comma-separated list of all merged source doc_ids. This way `/aim-rebuild` can recover the source list from the metadata header alone, without parsing the body.
+`sources=` 的值是以逗号分隔的所有被合并源 doc_id 列表。这样 `/aim-rebuild` 仅凭元数据头就能恢复源列表,无需解析正文。
 
-### Step 7: Rule-Based Verification
+### 步骤 7:基于规则的校验
 
-After LLM generates the compressed doc, verify hard info is preserved.
+LLM 生成压缩文档后,校验硬信息是否被保留。
 
-For each source doc, extract via regex:
-- Version-like strings: `\d+\.\d+(\.\d+)?` (e.g., `1.2.3`, `0.1`)
-- File paths: `[\w\-/.]+\.\w+` (e.g., `src/index.ts`)
-- Commands: `` `[^`]+` `` (backtick-quoted)
-- Config keys: `[A-Z_][A-Z0-9_]{2,}=` (e.g., `DATABASE_URL=`)
-- API names: `\b(GET|POST|PUT|DELETE)\b /[\w-/]+`
+对每篇源文档,用正则提取:
+- 版本号字符串:`\d+\.\d+(\.\d+)?`(如 `1.2.3`、`0.1`)
+- 文件路径:`[\w\-/.]+\.\w+`(如 `src/index.ts`)
+- 命令:`` `[^`]+` ``(反引号包裹)
+- 配置键:`[A-Z_][A-Z0-9_]{2,}=`(如 `DATABASE_URL=`)
+- API 名:`\b(GET|POST|PUT|DELETE)\b /[\w-/]+`
 
-Check that each extracted item appears in the compressed output.
+检查每个提取项是否出现在压缩输出中。
 
-**Case sensitivity rules**:
-- Code identifiers (`Stack.Navigator`, `HMGET`, `jwt.sign`): **case-sensitive** — these are load-bearing and must match exactly.
-- Common words that happen to be Capitalized in prose (`Modal` vs `modal`, `Token` vs `token`): **case-insensitive match is OK** — don't add to appendix just because of case.
-- When unsure, prefer case-sensitive (safer). Appendix is cheap, information loss is expensive.
+**大小写规则**:
+- 代码标识符(`Stack.Navigator`、`HMGET`、`jwt.sign`):**大小写敏感** — 这些是承重信息,必须精确匹配。
+- 散文中恰好首字母大写的常见词(`Modal` vs `modal`、`Token` vs `token`):**大小写不敏感匹配即可** — 不要仅因大小写就加入附录。
+- 不确定时,优先大小写敏感(更安全)。附录成本低,信息丢失代价大。
 
-**If any missing**:
-1. Flag the missing items.
-2. Either:
-   - Re-prompt the LLM with explicit instructions to include them (one retry).
-   - Manually append a `<!-- preserved-hard-info -->` block at the end of the compressed doc with the missing items verbatim.
-3. Log the verification result in the merge log.
+**如果有缺失**:
+1. 标记缺失项。
+2. 二选一:
+   - 用明确指令重新提示 LLM 把这些内容包含进来(最多一次重试)。
+   - 手动在压缩文档末尾追加 `<!-- preserved-hard-info -->` 块,把缺失项原样列出。
+3. 在合并日志中记录校验结果。
 
-**MVP note**: do at most one retry. If still missing after retry, preserve verbatim in appendix block. Don't loop indefinitely.
+**MVP 备注**:最多重试一次。重试后仍缺失则在附录块中原样保留。不要无限循环。
 
-### Step 8: Determine Output File
+### 步骤 8:确定输出文件
 
-Filename: `compressed-YYYYMMDD.html` (e.g., `compressed-20260621.html`).
+文件名:`compressed-YYYYMMDD.html`(如 `compressed-20260621.html`)。
 
-If file exists (same-day re-compress): append `-N` suffix (`compressed-20260621-2.html`).
+如果文件已存在(同一天再次压缩):追加 `-N` 后缀(`compressed-20260621-2.html`)。
 
-Full path:
-- Central mode: `<root>/<subdir>/compressed-YYYYMMDD.html`
-- Distributed mode: `<project>/.ai-memory/compressed-YYYYMMDD.html`
+完整路径:
+- 集中式模式:`<root>/<subdir>/compressed-YYYYMMDD.html`
+- 分散式模式:`<project>/.ai-memory/compressed-YYYYMMDD.html`
 
-### Step 9: Write Compressed Doc
+### 步骤 9:写入压缩文档
 
-Write the HTML to the output path.
+把 HTML 写入输出路径。
 
-Verify write succeeded (read back, check size > 1KB).
+校验写入成功(回读,检查大小 > 1KB)。
 
-### Step 10: Archive Source Documents
+### 步骤 10:归档源文档
 
-For each source doc:
+对每篇源文档:
 
-1. Create snapshot dir: `<root>/snapshots/YYYY-MM-DD/` (mkdir -p).
-2. Move (not copy) the source HTML from active location to snapshot dir.
-3. Record in `INDEX.yaml` `snapshots` list:
+1. 创建快照目录:`<root>/snapshots/YYYY-MM-DD/`(mkdir -p)。
+2. 把源 HTML 从活跃位置**移动**(不是复制)到快照目录。
+3. 记录到 `INDEX.yaml` 的 `snapshots` 列表:
    ```yaml
    - date: "2026-06-21"
      reason: "compressed"
@@ -208,12 +208,12 @@ For each source doc:
      compressed_into: "compressed-20260621.html"
    ```
 
-Never delete source files — always move to snapshots.
+绝不删除源文件 — 始终移到 snapshots。
 
-### Step 11: Update INDEX.yaml
+### 步骤 11:更新 INDEX.yaml
 
-1. Clear `active` list (all entries moved to snapshots).
-2. Update `compressed` list:
+1. 清空 `active` 列表(所有条目已移到 snapshots)。
+2. 更新 `compressed` 列表:
    ```yaml
    compressed:
      - doc_id: "aim-20260621-<random>"
@@ -229,24 +229,24 @@ Never delete source files — always move to snapshots.
        contributors:
          - { user: "u-a3b2f1c9", name: "朱陶锋", last: "2026-06-21" }
    ```
-3. Update top-level `updated` to today.
-4. Update `snapshots` list per Step 10.
+3. 顶层 `updated` 更新为今天。
+4. 按步骤 10 更新 `snapshots` 列表。
 
-For incremental mode: instead of clearing, replace the existing `compressed[0]` with the new merged version (increment `version` field).
+增量模式:不清空,而是用新合并版本替换已有 `compressed[0]`(递增 `version` 字段)。
 
-### Step 12: Git Commit (Optional)
+### 步骤 12:Git 提交(可选)
 
-If project is in git:
+如果项目在 git 中:
 
 ```
 git add compressed-YYYYMMDD.html snapshots/YYYY-MM-DD/ INDEX.yaml
-git rm <old active files>  # explicitly remove from index since they moved
+git rm <old active files>  # 因为文件已移走,显式从索引移除
 git commit -m "[aim-compress] <PROJECT_NAME> - 2026-06-21 压缩归档 (合并 N 篇)"
 ```
 
-If not in git: skip, note `未纳入 Git,压缩文档已生成但未版本管理`.
+不在 git 中:跳过,提示 `未纳入 Git,压缩文档已生成但未版本管理`。
 
-### Step 13: Output Result
+### 步骤 13:输出结果
 
 ```
 ✅ 压缩完成
@@ -254,13 +254,13 @@ If not in git: skip, note `未纳入 Git,压缩文档已生成但未版本管理
 📋 压缩信息
    合并文档: 6 篇 → 1 篇压缩文档
    压缩前: 8,400 tokens
-   压缩后: 12,500 tokens (净增 4,100,但 7 章节结构化)
+   压缩后: 12,500 tokens(净增 4,100,但 7 章节结构化)
    操作者: 朱陶锋 (u-a3b2f1c9)
    模式: fresh / 增量合并
 
 📁 生成文件
    压缩文档: /Users/.../compressed-20260621.html
-   快照目录: /Users/.../snapshots/2026-06-21/ (6 篇源文档)
+   快照目录: /Users/.../snapshots/2026-06-21/(6 篇源文档)
 
 🔍 校验结果
    ✅ 硬信息保留: 24/24 项
@@ -278,86 +278,86 @@ If not in git: skip, note `未纳入 Git,压缩文档已生成但未版本管理
    - /aim-expand     从快照恢复细节(如需要)
 ```
 
-## Edge Cases
+## 边界情况
 
-### Case A: Only 1-2 active docs
+### 情况 A:仅 1-2 篇活跃文档
 
-- Warn but allow override.
-- Output: `仅 N 篇,压缩价值有限。是否仍要继续? (Y/n)`.
+- 警告,但允许覆盖。
+- 输出:`仅 N 篇,压缩价值有限。是否仍要继续? (Y/n)`。
 
-### Case B: Active docs have conflicting versions of same fact
+### 情况 B:活跃文档对同一事实存在冲突版本
 
-- LLM should keep newer, archive older with `[deprecated]` tag.
-- If dates are equal/unknown: keep both in active zone with explicit "存在两种说法" note.
+- LLM 应保留较新的,把较旧的用 `[deprecated]` 标签归档。
+- 如果日期相同/未知:两者都保留在活跃区,并加显式"存在两种说法"标注。
 
-### Case C: Source doc is huge (>5000 tokens individually)
+### 情况 C:源文档非常大(单篇 >5000 tokens)
 
-- Warn before compression.
-- Suggest: `文档 X 较大,建议先 /aim-edit 拆分,再压缩。是否仍要纳入? (Y/n)`.
+- 压缩前警告。
+- 建议:`文档 X 较大,建议先 /aim-edit 拆分,再压缩。是否仍要纳入? (Y/n)`。
 
-### Case D: Compression would exceed sane limit (>30k tokens compressed)
+### 情况 D:压缩后超出合理上限(>30k tokens)
 
-- Warn: `压缩后预计 N tokens,可能影响新会话读取效率。建议先拆分为多个项目或归档部分内容`。
-- Allow override.
+- 警告:`压缩后预计 N tokens,可能影响新会话读取效率。建议先拆分为多个项目或归档部分内容`。
+- 允许覆盖。
 
-### Case E: Verification fails (hard info missing after retry)
+### 情况 E:校验失败(重试后硬信息仍缺失)
 
-- Do NOT discard the compression.
-- Append missing items as a `<!-- preserved-hard-info -->` block at end of compressed doc.
-- Add 🟠 warning to output: `N 项硬信息未融入正文,已在附录保留`.
+- 不要丢弃压缩结果。
+- 把缺失项作为 `<!-- preserved-hard-info -->` 块追加到压缩文档末尾。
+- 输出中加 🟠 警告:`N 项硬信息未融入正文,已在附录保留`。
 
-### Case F: User runs /aim-compress on an empty active list
+### 情况 F:用户对空活跃列表运行 /aim-compress
 
-- Stop: `活跃文档为空,无需压缩`.
+- 停止:`活跃文档为空,无需压缩`。
 
-### Case G: Snapshot directory for today already exists (re-compress same day)
+### 情况 G:今天的快照目录已存在(同一天再次压缩)
 
-- Append to existing snapshot dir (don't overwrite).
-- Filename gets `-N` suffix to avoid collision.
+- 追加到已有快照目录(不要覆盖)。
+- 文件名追加 `-N` 后缀避免冲突。
 
-### Case H: Power failure / crash mid-compression
+### 情况 H:压缩中途断电 / 崩溃
 
-- Worst case: compressed doc written but INDEX not updated, or sources moved but INDEX not updated.
-- Recovery: `/aim-verify` will flag the inconsistency; `/aim-rebuild` will reconcile from filesystem.
+- 最坏情况:压缩文档已写但 INDEX 未更新,或源文件已移动但 INDEX 未更新。
+- 恢复:`/aim-verify` 会标记不一致;`/aim-rebuild` 会从文件系统对齐。
 
-## Output Style
+## 输出风格
 
-- Use Chinese for user-facing messages.
-- Show before/after token counts.
-- Always show snapshot path so user knows where originals went.
-- Emoji: ✅ 📋 📁 🔍 📊 📝 ⚠️ 🗜️
-- For dry-run, show proposed outline (section titles + which docs land where) without writing.
+- 用户可见信息用中文。
+- 显示压缩前后 token 数。
+- 始终显示快照路径,让用户知道原件去了哪里。
+- emoji:✅ 📋 📁 🔍 📊 📝 ⚠️ 🗜️
+- dry-run 模式:展示提案大纲(章节标题 + 各文档落在何处),不写入。
 
-## Soft Sandbox Behavior
+## 软沙盒行为
 
-- `/aim-compress` is **special**: it modifies the shared compressed doc (`owner=__project__`).
-- For single-user projects: no confirmation needed beyond normal flow.
-- For multi-user projects: if any source doc has a different owner than current user, prompt:
+- `/aim-compress` 较**特殊**:它会修改共享压缩文档(`owner=__project__`)。
+- 单用户项目:除常规流程外无需额外确认。
+- 多用户项目:如果任何源文档所有者与当前用户不同,提示:
   ```
   本次压缩包含其他用户的文档:
     - 张三 (u-b1c2d3e4): 2 篇
     - 李四 (u-c3d4e5f6): 1 篇
   跨用户压缩公共文档,确认? (Y/n)
   ```
-- Once confirmed, no caching (per project rule).
+- 确认后不做缓存(按项目规则)。
 
-## MVP Limitations (vs full v0.2)
+## MVP 局限(vs 完整 v0.2)
 
-- ❌ No three-stage pipeline (analyze/merge/verify as separate LLM calls with structured intermediate output).
-- ❌ No iterative refinement loop (just one retry on hard info miss).
-- ❌ No section-level quality scoring.
-- ❌ No automatic identification of "should split into multiple compressions".
+- ❌ 无三阶段流水线(分析/合并/校验作为独立 LLM 调用,带结构化中间输出)。
+- ❌ 无迭代精修循环(仅一次硬信息缺失重试)。
+- ❌ 无章节级质量评分。
+- ❌ 不能自动识别"应拆分为多次压缩"的情况。
 
-What MVP does have:
-- ✅ Dual-zone output (active + archive).
-- ✅ Source attribution.
-- ✅ Rule-based hard info verification.
-- ✅ Snapshot preservation of originals.
-- ✅ Incremental merge with existing compressed doc.
+MVP 具备的能力:
+- ✅ 双区输出(活跃 + 归档)。
+- ✅ 来源标注。
+- ✅ 基于规则的硬信息校验。
+- ✅ 原件快照保留。
+- ✅ 与已有压缩文档的增量合并。
 
-## Reference
+## 参考
 
-- Template: `templates/compressed-template.html.tpl`
-- Concept: `reference/three-stage-pipeline.md` (full design, deferred)
-- Concept: `reference/rule-diff-verification.md`
-- Companion commands: `/aim-status`, `/aim-expand`, `/aim-rebuild`
+- 模板:`templates/compressed-template.html.tpl`
+- 概念:`reference/three-stage-pipeline.md`(完整设计,已推迟)
+- 概念:`reference/rule-diff-verification.md`
+- 配套命令:`/aim-status`、`/aim-expand`、`/aim-rebuild`
