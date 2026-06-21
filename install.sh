@@ -11,7 +11,8 @@
 # 本脚本会做:
 #   1. 把 ai-memory 克隆(或更新)到 ~/.claude/skills/ai-memory
 #   2. 初始化 ~/.claude/ai-memory/ 用于存放用户数据(identity 等)
-#   3. 打印下一步操作指引
+#   3. 把 commands/*.md 软链接到 ~/.claude/commands/,让 /aim-* 命令可用
+#   4. 打印下一步操作指引
 #
 # 本脚本不会做:
 #   - 修改任何已存在的 CLAUDE.md
@@ -62,6 +63,28 @@ fi
 
 # 步骤 2:初始化数据目录
 mkdir -p "${DATA_DIR}"
+
+# 步骤 2.5:同步 commands/ 到 ~/.claude/commands/(软链接)
+# 必要性:Claude Code 的两套命令系统是分开的 ——
+#   - Skills:~/.claude/skills/<name>/SKILL.md(通过 /<skill-name> 触发)
+#   - Slash Commands:~/.claude/commands/*.md(通过 /<command-name> 触发)
+# Skill 内部的 commands/*.md 不会被自动注册为顶层 slash command。
+# 必须把它们软链接到 ~/.claude/commands/,/aim-init 等命令才能被用户直接调用。
+info "同步 commands/ 到 ~/.claude/commands/(软链接)..."
+mkdir -p "${HOME}/.claude/commands"
+SYNC_COUNT=0
+for cmd_file in "${SKILL_DIR}/commands/"*.md; do
+    [ -f "$cmd_file" ] || continue
+    cmd_name=$(basename "$cmd_file")
+    link_path="${HOME}/.claude/commands/${cmd_name}"
+    # 如果已存在且不是软链接(可能是旧版本的复制品),先删除避免冲突
+    if [ -e "$link_path" ] && [ ! -L "$link_path" ]; then
+        rm -f "$link_path"
+    fi
+    ln -sf "$cmd_file" "$link_path"
+    SYNC_COUNT=$((SYNC_COUNT + 1))
+done
+info "已同步 ${SYNC_COUNT} 个命令到 ~/.claude/commands/"
 
 # 写入初始版本缓存(避免安装后立即提示"有新版本")
 SKILL_VERSION=$(grep -E '^version:' "${SKILL_DIR}/SKILL.md" 2>/dev/null | head -1 | sed 's/version: *//; s/[[:space:]]*$//')
