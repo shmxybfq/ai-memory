@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <!-- aim:doc_id={{DOC_ID}} title={{TITLE}} tags={{TAGS}} created={{CREATED}} created_by={{CREATED_BY}} owner={{OWNER}} status=active source={{SOURCE}} -->
@@ -25,7 +25,7 @@
 
 <h1>{{TITLE}}</h1>
 
-<p>操作时间：{{CREATED}}（创建 by {{OWNER_NAME}}）</p>
+<p>Timestamp: {{CREATED}} (created by {{OWNER_NAME}})</p>
 
 <!-- Content goes here -->
 {{CONTENT}}
@@ -33,7 +33,7 @@
 <hr>
 
 <div class="highlight">
-<strong>文档元数据：</strong>
+<strong>Document metadata:</strong>
 <ul>
 <li>doc_id: {{DOC_ID}}</li>
 <li>owner: {{OWNER_NAME}} ({{OWNER}})</li>

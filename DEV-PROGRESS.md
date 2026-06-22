@@ -1,94 +1,93 @@
-# ai-memory 开发进度文档
+# ai-memory Development Progress
 
-> 本文档用于跨会话/上下文压缩后恢复开发状态。Claude 新会话开始时优先读此文档。
+> This document restores development state across sessions and after context compression. Claude should read this document first at the start of each new session.
 
-**最后更新**: 2026-06-21 18:30
-**当前阶段**: MVP 全流程测试通过,核心修订完成。10/10 任务完成。
+**Last updated**: 2026-06-21 18:30
+**Current stage**: MVP full-flow testing passed, core revisions complete. 10/10 tasks done.
 
 ---
 
-## 一、项目概述
+## 1. Project Overview
 
-**ai-memory** 是一个 Claude Code Skill 集合,为 Claude Code 用户提供跨会话的项目记忆能力。
+**ai-memory** is a Claude Code Skill collection that provides cross-session project memory for Claude Code users.
 
 - **GitHub**: https://github.com/shmxybfq/ai-memory
-- **本地路径**: `~/Desktop/ai-memory/`
-- **软链接**: `~/.claude/skills/ai-memory → ~/Desktop/ai-memory/`(开发即生效)
-- **设计文档**: `~/Desktop/persistent-document/bauto-video/2026年06月12日压缩前快照/ai-memory开源项目设计方案讨论.html`(22 章)
+- **Local path**: `~/Desktop/ai-memory/`
+- **Symlink**: `~/.claude/skills/ai-memory → ~/Desktop/ai-memory/` (live in development)
+- **Design document**: `~/Desktop/persistent-document/bauto-video/2026-06-12-snapshot/ai-memory-open-source-design-discussion.html` (22 chapters)
 
 ---
 
-## 二、用户信息
+## 2. User Information
 
-| 项 | 值 |
+| Item | Value |
 |---|---|
-| GitHub 用户名 | `shmxybfq` |
-| Git user.name | `朱陶锋` |
-| Git user.email | `shmxybfq@163.com` |
-| VPN 代理 | `all_proxy=socks5h://127.0.0.1:7890` |
-| 操作系统 | macOS Darwin 24.6.0 |
+| GitHub username | `shmxybfq` |
+| Git user.name | Developer |
+| Git user.email | [redacted] |
+| Operating system | macOS Darwin 24.6.0 |
 
 ---
 
-## 三、关键约定(必须遵守)
+## 3. Key Conventions (Must Follow)
 
-### 3.1 用户偏好
-- **所有交互界面文字使用中文**(feedback_chinese_ui.md 记忆)
-- 不要过度设计,先做最小可行
-- 边讨论边确认,重大决策走 AskUserQuestion
-- 文档统一 HTML 格式(不用 Markdown)
+### 3.1 User Preferences
+- **Command documents and user-facing text in English** (global audience)
+- Do not over-engineer; ship the minimum viable version first
+- Confirm as you go; major decisions via AskUserQuestion
+- All documents in HTML format (not Markdown)
 
-### 3.2 设计决策(已锁定)
-- **形态**: 纯 Claude Code Skill(不做 CLI、不做 MCP,留待后续升级)
-- **默认模式**: 集中式(沿用 persistent-document 结构)
-- **分散式**: 项目内嵌 `.ai-memory/`
-- **文档格式**: HTML + 头部元数据注释(`<!-- aim:doc_id=... -->`)
-- **INDEX.yaml**: 可重建缓存,不是真源
-- **压缩文档**: 单文件双分区(当前有效 + 历史归档),软删除不真删
-- **校验机制**: 规则 diff 优先于 LLM 自检(正则提取版本号、文件名、命令、配置值)
-- **跨工具**: MVP 不做
+### 3.2 Design Decisions (Locked)
+- **Form**: Pure Claude Code Skill only (no CLI, no MCP — deferred to future versions)
+- **Default mode**: Centralized (following persistent-document conventions)
+- **Distributed mode**: Project-embedded `.ai-memory/`
+- **Document format**: HTML + header metadata comment (`<!-- aim:doc_id=... -->`)
+- **INDEX.yaml**: Rebuildable cache, not the source of truth
+- **Compressed document**: Single file, dual zone (active + archive), soft-delete (never hard-delete)
+- **Verification mechanism**: Rule-based diff over LLM self-check (regex extraction of version numbers, filenames, commands, config values)
+- **Cross-tool support**: Not in MVP
 
-### 3.3 协作设计(软沙盒)
-- **用户身份**: 全局 `~/.claude/ai-memory/identity.json`(id 格式 `u-<8位随机>`)
-- **身份获取**: 优先 git config user.name,其次询问
-- **软沙盒**: 用户默认只能直接操作自己文档
-- **跨沙盒**: 每次必问,无缓存,commit message 标 `[cross-user:from 张三]`
-- **压缩文档归属**: `__project__`(不归个人)
-- **doc_id 格式**: `aim-YYYYMMDD-<6位随机>`
+### 3.3 Collaboration Design (Soft Sandbox)
+- **User identity**: Global `~/.claude/ai-memory/identity.json` (id format `u-<8 random chars>`)
+- **Identity acquisition**: Prefer git config user.name, then ask
+- **Soft sandbox**: Users can only directly operate on their own documents by default
+- **Cross-sandbox**: Always ask, no caching, commit message tags `[cross-user:from <name>]`
+- **Compressed document ownership**: `__project__` (not owned by individuals)
+- **doc_id format**: `aim-YYYYMMDD-<6 random chars>`
 
-### 3.4 分发决策(5 项已确认)
-1. GitHub 仓库: **个人账号**(shmxybfq)
-2. `/aim-uninit`: **提供**
-3. `/aim-help`: **MVP 就做**
-4. 升级提示: **MVP 就做**
-5. README: **英文主 + 中文版**
+### 3.4 Distribution Decisions (5 items confirmed)
+1. GitHub repo: **Personal account** (shmxybfq)
+2. `/aim-uninit`: **Provided**
+3. `/aim-help`: **Ship in MVP**
+4. Upgrade notification: **Ship in MVP**
+5. README: **English primary + Chinese version**
 
-### 3.5 命令决策
-- 集中式默认根目录: **让用户每次输入**(不预设默认)
-- 项目子目录名: **让用户每次输入**
-- CLAUDE.md 注入位置: **根目录**(集中式)或项目根(分散式)
-- 身份 ID 生成: **`u-<8位随机>`**
+### 3.5 Command Decisions
+- Centralized default root directory: **Let user enter each time** (no preset default)
+- Project subdirectory name: **Let user enter each time**
+- CLAUDE.md injection location: **Root directory** (centralized) or project root (distributed)
+- Identity ID generation: **`u-<8 random chars>`**
 
 ---
 
-## 四、文件结构(当前状态)
+## 4. File Structure (Current State)
 
 ```
 ~/Desktop/ai-memory/
-├── SKILL.md                              ✅ Skill 总入口(14 命令清单)
-├── DEV-PROGRESS.md                       ✅ 本文档
-├── README.md                             ✅ 英文主文档
-├── README.zh-CN.md                       ✅ 中文版文档
-├── CHANGELOG.md                          ✅ 版本历史
-├── install.sh                            ✅ 一键安装脚本(可执行)
+├── SKILL.md                              ✅ Skill entry point (14-command manifest)
+├── DEV-PROGRESS.md                       ✅ This document
+├── README.md                             ✅ English primary docs
+├── README.zh-CN.md                       ✅ Chinese docs
+├── CHANGELOG.md                          ✅ Version history
+├── install.sh                            ✅ One-line install script (executable)
 ├── .gitignore                            ✅
-├── commands/                             ✅ 全部 14 命令
+├── commands/                             ✅ All 14 commands
 │   ├── aim-init.md                       ✅
 │   ├── aim-add.md                        ✅
 │   ├── aim-append.md                     ✅
 │   ├── aim-edit.md                       ✅
 │   ├── aim-archive.md                    ✅
-│   ├── aim-compress.md                   ✅ MVP 简化版
+│   ├── aim-compress.md                   ✅ MVP simplified version
 │   ├── aim-status.md                     ✅
 │   ├── aim-rebuild.md                    ✅
 │   ├── aim-verify.md                     ✅
@@ -97,7 +96,7 @@
 │   ├── aim-help.md                       ✅
 │   ├── aim-identity.md                   ✅
 │   └── aim-uninit.md                     ✅
-├── prompts/                              空(三阶段流水线留待 v0.2)
+├── prompts/                              Empty (three-stage pipeline deferred to v0.2)
 ├── templates/                            ✅
 │   ├── INDEX.yaml.tpl                    ✅
 │   ├── claude-md-rules.md.tpl            ✅
@@ -109,186 +108,186 @@
 
 ---
 
-## 五、任务进度
+## 5. Task Progress
 
-### 已完成
-- ✅ #1 创建项目骨架
-- ✅ #2 关联 GitHub 仓库并首次推送(commit `2079b12`)
-- ✅ #3 开发 `/aim-init`
-- ✅ #4 开发 `/aim-add`
-- ✅ #5 开发 `/aim-status`(token 估算、Git diff 落后警告、健康提示)
-- ✅ #6 开发 `/aim-rebuild` + `/aim-verify`
-- ✅ #7 开发 `/aim-compress`(MVP 简化版)
-- ✅ #8 辅助命令: `/aim-help` `/aim-list` `/aim-expand` `/aim-uninit` `/aim-identity` + 升级提示
-- ✅ #8 补完 `/aim-append` `/aim-edit` `/aim-archive`(SKILL.md 列出但还没写的)
-- ✅ #9 编写 README.md(英文)+ README.zh-CN.md(中文)+ install.sh + CHANGELOG
+### Completed
+- ✅ #1 Create project skeleton
+- ✅ #2 Connect GitHub repo and first push (commit `2079b12`)
+- ✅ #3 Develop `/aim-init`
+- ✅ #4 Develop `/aim-add`
+- ✅ #5 Develop `/aim-status` (token estimation, Git diff behind warning, health tips)
+- ✅ #6 Develop `/aim-rebuild` + `/aim-verify`
+- ✅ #7 Develop `/aim-compress` (MVP simplified version)
+- ✅ #8 Auxiliary commands: `/aim-help` `/aim-list` `/aim-expand` `/aim-uninit` `/aim-identity` + upgrade notification
+- ✅ #8 Complete remaining: `/aim-append` `/aim-edit` `/aim-archive` (listed in SKILL.md but not yet written)
+- ✅ #9 Write README.md (English) + README.zh-CN.md (Chinese) + install.sh + CHANGELOG
 
-### 待办
-- ✅ #10 真实项目验证与 Prompt 调优(2026-06-21 完成)
-  - 测试目录:`~/Desktop/ai-memory-test/`(已建,可保留作回归测试)
-  - 完整跑通:`init → add×3 → status → compress → expand → rebuild → verify`
-  - 发现 5 个问题并修订(见第十一节)
+### TODO
+- ✅ #10 Real project validation and prompt tuning (completed 2026-06-21)
+  - Test directory: `~/Desktop/ai-memory-test/` (created, can keep for regression testing)
+  - Full flow: `init → add×3 → status → compress → expand → rebuild → verify`
+  - Found 5 issues and applied fixes (see Section 11)
 
-### 近期候选工作(2026-06-21 后续,优先级排序)
+### Near-Term Candidates (post 2026-06-21, priority-ordered)
 
-#### 候选 1:真实测试 `/aim-init`(高优先级)
-- **目的**:填补"差距 1:没有真实 LLM 验证"。之前所有测试都是 Claude 扮演 LLM 走流程,不是真实第三方验证
-- **触发条件**:命令注册机制修复后(commit 47e7310),`/aim-*` 在真实 Claude Code 中已可用
-- **怎么做**:在独立测试目录跑 `/aim-init` → `/aim-add` ×3 → `/aim-compress`,观察约束是否真生效
-- **预期产出**:暴露约束失效的地方,针对性加强
+#### Candidate 1: Real test of `/aim-init` (High priority)
+- **Purpose**: Fill "Gap 1: no real LLM validation." All previous tests had Claude role-playing the LLM flow, not a real third-party validation.
+- **Trigger**: After command registration fix (commit 47e7310), `/aim-*` is now available in real Claude Code.
+- **How**: Run `/aim-init` → `/aim-add` ×3 → `/aim-compress` in an independent test directory, observe whether constraints truly take effect.
+- **Expected outcome**: Reveal where constraints break down, allowing targeted reinforcement.
 
-#### 候选 2:写对外文章(中优先级)
-- **主题**:"Claude Code Skill 开发的两套命令系统陷阱"(或类似)
-- **素材来源**:第 3 次对话同步的诊断 + 解决方案 + 教训
-- **渠道**:博客 / 推特 / 知乎 / 小红书(用户偏好定)
-- **价值**:让其他 Skill 开发者避开同样的坑,反向也能为 ai-memory 项目带来用户
-- **替代方案**:在 ai-memory 仓库写一篇 `LESSONS.md` 或 `docs/` 文章,但不要做成 reference/(过度设计,无人看)
+#### Candidate 2: Write a public-facing article (Medium priority)
+- **Topic**: "The Two Command System Trap in Claude Code Skill Development" (or similar)
+- **Source material**: Diagnosis + solution + lessons from the 3rd conversation sync
+- **Channels**: Blog / Twitter / Zhihu / Xiaohongshu (user preference TBD)
+- **Value**: Help other Skill developers avoid the same pitfall; also drives users to ai-memory.
+- **Alternative**: Write a `LESSONS.md` or `docs/` article in the ai-memory repo, but not in `reference/` (over-engineered, nobody reads it).
 
-#### 候选 3:推进 v0.2 迁移工具(中优先级)
-- **目的**:填补"差距 2:用户自己用不上(persistent-document 不兼容)"
-- **工作**:写 `aim-migrate` 命令,把 persistent-document 简化格式 INDEX.yaml 升级到 ai-memory 完整格式
-- **难点**:
-  - 给已存在 HTML 文档补 `<!-- aim:... -->` 元数据头
-  - 处理中文快照目录名 → 英文格式(可选保留中文)
-  - 决策:迁移后是覆盖原 persistent-document 还是另存
-- **价值**:让用户自己的核心场景(管理 persistent-document)能真正用上 ai-memory
+#### Candidate 3: Push v0.2 migration tool (Medium priority)
+- **Purpose**: Fill "Gap 2: user can't actually use it (persistent-document incompatible)"
+- **Work**: Write an `aim-migrate` command to upgrade persistent-document simplified INDEX.yaml format to full ai-memory format
+- **Challenges**:
+  - Backfill `<!-- aim:... -->` metadata headers into existing HTML documents
+  - Handle Chinese snapshot directory names → English format (optionally keep Chinese)
+  - Decision: overwrite original persistent-document or save separately after migration
+- **Value**: Let users actually use ai-memory for their core scenario (managing persistent-document)
 
 ---
 
-## 十一、测试发现与修订记录(2026-06-21)
+## 11. Test Findings and Revisions (2026-06-21)
 
-### 测试覆盖
-| 命令 | 测试结果 |
+### Test Coverage
+| Command | Test Result |
 |---|---|
-| `/aim-init` | ✅ 身份创建、模式选择、目录结构、INDEX/CLAUDE.md 注入 |
-| `/aim-add x3` | ✅ HTML 模板渲染、元数据嵌入、INDEX active 列表更新 |
-| `/aim-status` | ✅ 文档统计、token 估算、压缩建议阈值 |
-| `/aim-compress` | ✅ 双区输出、来源标注、规则校验、附录追加 |
-| `/aim-expand` | ✅ topic 过滤、跨快照检索 |
-| `/aim-rebuild` | ✅ 从损坏 INDEX 完整重建、孤儿文件识别 |
-| `/aim-verify` | ✅ MISSING_FILE/META_MISSING/ORPHAN 等检查 |
+| `/aim-init` | ✅ Identity creation, mode selection, directory structure, INDEX/CLAUDE.md injection |
+| `/aim-add x3` | ✅ HTML template rendering, metadata embedding, INDEX active list update |
+| `/aim-status` | ✅ Document stats, token estimation, compression suggestion thresholds |
+| `/aim-compress` | ✅ Dual-zone output, source attribution, rule verification, appendix append |
+| `/aim-expand` | ✅ Topic filtering, cross-snapshot search |
+| `/aim-rebuild` | ✅ Full rebuild from corrupted INDEX, orphan file detection |
+| `/aim-verify` | ✅ MISSING_FILE/META_MISSING/ORPHAN checks |
 
-### 发现的问题与修订
+### Issues Found and Fixes
 
-#### 问题 1:模板条件块语法不一致(已修订)
-- `claude-md-rules.md.tpl` 用了 `{{#CENTRAL}}...{{/CENTRAL}}` Mustache 条件块,其他模板都用简单 `{{KEY}}`
-- **修订**:`aim-init.md` Step 8 添加明确的处理规则(central 保留内嵌、distributed 删除整块)
+#### Issue 1: Template conditional block syntax inconsistency (Fixed)
+- `claude-md-rules.md.tpl` used `{{#CENTRAL}}...{{/CENTRAL}}` Mustache conditionals, while other templates used simple `{{KEY}}` placeholders.
+- **Fix**: Added explicit handling rules in `aim-init.md` Step 8 (central mode keeps inline, distributed mode removes the entire block).
 
-#### 问题 2:规则校验大小写敏感(已修订)
-- `Modal`(原文档)vs `modal`(压缩文档)被判为丢失
-- **修订**:`aim-compress.md` Step 7 添加大小写规则:代码标识符大小写敏感,普通词汇不敏感
+#### Issue 2: Rule verification case-sensitivity mismatch (Fixed)
+- `Modal` (original document) vs `modal` (compressed document) was flagged as missing.
+- **Fix**: Added case-sensitivity rules in `aim-compress.md` Step 7: code identifiers are case-sensitive, natural language words are not.
 
-#### 问题 3:压缩文档 sources 无法 rebuild 恢复(已修订)
-- compressed 的源 doc_id 列表只在 INDEX 里,文件元数据头没有
-- **修订**:`compressed-template.html.tpl` 元数据头加 `sources={{SOURCES}}` 字段;`aim-compress.md` Step 6 输出说明加 sources;`aim-rebuild.md` Step 5 加 sources 恢复逻辑(向后兼容老文档)
+#### Issue 3: Compressed document sources unrecoverable by rebuild (Fixed)
+- The source doc_id list for compressed documents was only in INDEX, not in the file's metadata header.
+- **Fix**: Added `sources={{SOURCES}}` field to `compressed-template.html.tpl` metadata header; added sources to `aim-compress.md` Step 6 output notes; added sources recovery logic in `aim-rebuild.md` Step 5 (backward-compatible with old documents).
 
-#### 问题 4:CLAUDE.md 是 symlink 时无说明(已修订)
-- **修订**:`aim-init.md` Step 8 第 5 条添加 symlink 处理(写目标不破坏链接)
+#### Issue 4: No guidance when CLAUDE.md is a symlink (Fixed)
+- **Fix**: Added symlink handling to `aim-init.md` Step 8 item 5 (write to target, don't break the link).
 
-#### 问题 5:测试身份污染(待清理)
-- 测试用 `~/.claude/ai-memory/identity.json` 创建了 `u-r00hpf42` 朱陶锋
-- 用户真实使用时会复用此身份(因为是全局的)
-- **建议**:用户决定是否清理(若不想保留测试身份,删除整个 `~/.claude/ai-memory/` 目录)
+#### Issue 5: Test identity pollution (Pending cleanup)
+- Testing created `u-r00hpf42` Zhu Taofeng in `~/.claude/ai-memory/identity.json`.
+- Real usage will reuse this identity (since it's global).
+- **Recommendation**: User decides whether to clean up (delete entire `~/.claude/ai-memory/` directory if test identity is unwanted).
 
-### 未测项(留待后续)
-- 跨用户软沙盒确认流程(单人测试无法覆盖)
-- Git 集成 commit/push(测试目录不在 git)
-- 升级提示机制(需要 GitHub release)
-- 真实 LLM 执行命令(本次测试由我扮演 LLM 走流程)
-- macOS Trash 移动(`--purge` 路径)
-
----
-
-## 六、关键命令设计要点
-
-### `/aim-init` 流程要点
-1. 解析用户身份(读 identity.json 或新建)
-2. 询问存储模式(集中式默认 1)
-3. 询问根目录(无默认,让用户输入)
-4. 询问项目名(中文)和子目录名(英文)
-5. 检查是否已初始化
-6. 创建目录、生成 INDEX.yaml、注入 CLAUDE.md(追加不覆盖)
-7. 可选 Git 初始化
-8. 输出结果
-
-### `/aim-add` 流程要点
-1. 解析当前项目(读 INDEX.yaml)
-2. 解析用户身份
-3. 收集内容(参数或询问)
-4. 元数据:title/source/tags/filename/doc_id
-5. 生成 HTML(用模板)
-6. 写文件
-7. 更新 INDEX.yaml active 列表(含 contributors、tokens)
-8. 可选 git commit
-9. 输出结果 + 压缩建议(3+/5+/8+ 三档提示)
-
-### `/aim-compress` MVP 要点
-1. 选源文档(默认全部 active)
-2. 读取所有源文档全文
-3. 检查是否有已有压缩文档(增量合并 vs fresh)
-4. **单次 LLM 合并**(非三阶段):
-   - 7 个固定章节输出
-   - 同主题合并,矛盾内容新覆盖旧、旧入归档区
-   - 来源标注 `[来源:文档标题 @ 作者]`
-5. 规则校验(正则提取硬信息:版本号、路径、命令、配置)
-6. 写入 `compressed-YYYYMMDD.html`
-7. **移动**(不复制)源文档到 snapshots
-8. 更新 INDEX.yaml: 清 active,设 compressed,记 snapshots
-9. 可选 git commit
-
-### 软沙盒规则
-- `/aim-add` 永远新建文件,owner = 当前用户
-- `/aim-append` `/aim-edit` `/aim-archive` 跨人需确认
-- 压缩文档跨人需确认(`__project__` 公共)
-- 公共命令(`/aim-status` `/aim-rebuild` `/aim-verify` `/aim-expand` `/aim-list` `/aim-help` `/aim-identity` `/aim-uninit`)不受沙盒约束
-
-### commit message 规范
-- `[aim-init] <项目名> - 初始化项目记忆 (<用户名>)`
-- `[aim-add] <项目名> - 新建 <文件名> (doc:<doc_id>)`
-- `[aim-edit] <项目名> - 修改 <文件名> [cross-user:from <原owner>] (doc:<doc_id>)`
-- `[aim-compress] <项目名> - <日期> 压缩归档 (合并 N 篇)`
+### Untested Items (deferred)
+- Cross-user soft sandbox confirmation flow (single-person testing can't cover this)
+- Git integration commit/push (test directory is not in a git repo)
+- Upgrade notification mechanism (requires a GitHub release)
+- Real LLM executing commands (this test had Claude role-play the LLM flow)
+- macOS Trash move (`--purge` path)
 
 ---
 
-## 七、MVP 必做清单(11 项)
+## 6. Key Command Design Points
 
-1. ✅ GitHub 仓库公开
-2. ✅ install.sh 一键脚本(可执行,带版本缓存初始化)
-3. ✅ Git clone 安装方式(已支持)
-4. ✅ README.md(英文主) + README.zh-CN.md(中文版)
-5. ⏳ 5 分钟快速上手文档(待写,或合并进 README)
-6. ✅ 命令清单(SKILL.md 已列 14 个)
+### `/aim-init` Flow
+1. Resolve user identity (read identity.json or create new)
+2. Ask for storage mode (centralized default 1)
+3. Ask for root directory (no default, let user enter)
+4. Ask for project name and subdirectory name
+5. Check if already initialized
+6. Create directories, generate INDEX.yaml, inject CLAUDE.md (append, don't overwrite)
+7. Optional Git initialization
+8. Output results
+
+### `/aim-add` Flow
+1. Resolve current project (read INDEX.yaml)
+2. Resolve user identity
+3. Collect content (from parameters or by asking)
+4. Metadata: title/source/tags/filename/doc_id
+5. Generate HTML (using template)
+6. Write file
+7. Update INDEX.yaml active list (including contributors, tokens)
+8. Optional git commit
+9. Output results + compression suggestion (3+/5+/8+ three-tier prompts)
+
+### `/aim-compress` MVP Flow
+1. Select source documents (default: all active)
+2. Read full text of all source documents
+3. Check for existing compressed document (incremental merge vs fresh)
+4. **Single-pass LLM merge** (not three-stage):
+   - 7 fixed chapter output
+   - Merge same-topic content; conflicting content: new supersedes old, old goes to archive zone
+   - Source attribution `[Source: document title @ author]`
+5. Rule verification (regex extraction of hard info: version numbers, paths, commands, configs)
+6. Write to `compressed-YYYYMMDD.html`
+7. **Move** (not copy) source documents to snapshots
+8. Update INDEX.yaml: clear active, set compressed, record snapshots
+9. Optional git commit
+
+### Soft Sandbox Rules
+- `/aim-add` always creates new files, owner = current user
+- `/aim-append` `/aim-edit` `/aim-archive` require confirmation for cross-user operations
+- Compressed document cross-user operations require confirmation (`__project__` is shared)
+- Public commands (`/aim-status` `/aim-rebuild` `/aim-verify` `/aim-expand` `/aim-list` `/aim-help` `/aim-identity` `/aim-uninit`) are exempt from sandbox constraints
+
+### Commit Message Convention
+- `[aim-init] <project-name> - Initialize project memory (<username>)`
+- `[aim-add] <project-name> - Created <filename> (doc:<doc_id>)`
+- `[aim-edit] <project-name> - Edited <filename> [cross-user:from <original-owner>] (doc:<doc_id>)`
+- `[aim-compress] <project-name> - <date> compression archive (merged N docs)`
+
+---
+
+## 7. MVP Must-Have Checklist (11 items)
+
+1. ✅ GitHub repo public
+2. ✅ install.sh one-line script (executable, with version cache initialization)
+3. ✅ Git clone installation (supported)
+4. ✅ README.md (English primary) + README.zh-CN.md (Chinese version)
+5. ⏳ 5-minute quickstart guide (pending, or merge into README)
+6. ✅ Command manifest (SKILL.md lists all 14)
 7. ✅ CHANGELOG
-8. ✅ GitHub Issues 开启(GitHub 默认)
-9. ✅ `/aim-uninit` 卸载命令
-10. ✅ `/aim-help` 内置帮助
-11. ✅ 升级提示机制(reference/upgrade-check.md)
+8. ✅ GitHub Issues enabled (GitHub default)
+9. ✅ `/aim-uninit` uninstall command
+10. ✅ `/aim-help` built-in help
+11. ✅ Upgrade notification mechanism (reference/upgrade-check.md)
 
-### MVP 不做
-- ❌ Plugin Marketplace 发布
-- ❌ 视频/博客推广
-- ❌ Discord 社区
-- ❌ 三阶段压缩流水线(v0.2)
-- ❌ MCP 集成(v0.3)
+### MVP Will NOT Do
+- ❌ Plugin Marketplace release
+- ❌ Video/blog promotion
+- ❌ Discord community
+- ❌ Three-stage compression pipeline (v0.2)
+- ❌ MCP integration (v0.3)
 - ❌ GUI
 
 ---
 
-## 八、关键技术细节
+## 8. Key Technical Details
 
-### 元数据头格式(HTML 注释)
+### Metadata Header Format (HTML Comment)
 ```html
-<!-- aim:doc_id=aim-20260621-a3b2f1 title=认证模块设计 tags=auth,security created=2026-06-21 created_by=u-a3b2f1c9 owner=u-a3b2f1c9 status=active source=对话 version=1 -->
+<!-- aim:doc_id=aim-20260621-a3b2f1 title=Auth Module Design tags=auth,security created=2026-06-21 created_by=u-a3b2f1c9 owner=u-a3b2f1c9 status=active source=conversation version=1 -->
 ```
 
-### INDEX.yaml 结构
+### INDEX.yaml Structure
 ```yaml
-project: "视频项目"
+project: "Video Project"
 mode: "central"
 root: "/abs/path"
 updated: "2026-06-21"
 
-compressed: []        # 单文件,owner=__project__
+compressed: []        # Single file, owner=__project__
 
 active:
   - doc_id: "..."
@@ -313,60 +312,60 @@ snapshots:
   - date: "2026-06-21"
     reason: "compressed / pre-edit-backup / manual"
     files: [...]
-    compressed_into: "..." # 仅 compressed 类型
-    archived_from: "..."   # 仅 archived 类型
+    compressed_into: "..." # Only for compressed type
+    archived_from: "..."   # Only for archived type
 ```
 
-### Token 估算(粗略)
-- 中文 1 字符 ≈ 1 token
-- 英文 4 字符 ≈ 1 token
-- HTML 标签开销 ≈ 50%
-- 简化公式: file_size_bytes / 3.5
+### Token Estimation (Rough)
+- CJK: 1 character ≈ 1 token
+- English: 4 characters ≈ 1 token
+- HTML tag overhead ≈ 50%
+- Simplified formula: file_size_bytes / 3.5
 
-### 压缩建议阈值
-- 3+ active docs → 温和提示
-- 5+ active docs → 强烈建议
-- 8+ active docs → 警告(膨胀风险)
+### Compression Suggestion Thresholds
+- 3+ active docs → gentle prompt
+- 5+ active docs → strong suggestion
+- 8+ active docs → warning (bloat risk)
 
-### 升级提示机制
-- `~/.claude/ai-memory/last-version-check.json` 缓存检查结果
-- 24 小时检查一次
-- 同版本不重复提示(user_dismissed 数组)
-- 离线静默跳过,不报错
-- `~/.claude/ai-memory/no-auto-check` 文件存在则完全禁用
-
----
-
-## 九、如何继续开发
-
-### 新会话/压缩后恢复流程
-1. 读 `~/Desktop/ai-memory/DEV-PROGRESS.md`(本文档)
-2. 读最新任务状态(`TaskList` 或本文档第五节)
-3. 用 `TaskUpdate` 把对应任务标 in_progress
-4. 按需继续:
-   - 写下一个 `commands/<name>.md`
-   - 或在 `~/Desktop/persistent-document/` 下做真实项目测试
-   - 或调优已有命令文档
-
-### 写命令文档的模板
-- frontmatter: `name` + `description`
-- 章节: Purpose / Usage / Prerequisites / Flow / Edge Cases / Output Style / Reference
-- 中文用户消息,英文代码
-- 使用 emoji: ✅ ❌ ⚠️ 📋 📁 📝 💡 📊 🔍 🗜️ 🚨
+### Upgrade Notification Mechanism
+- `~/.claude/ai-memory/last-version-check.json` caches check results
+- Checks once every 24 hours
+- Same version never re-notifies (user_dismissed array)
+- Offline: silently skip, no errors
+- `~/.claude/ai-memory/no-auto-check` file existence disables checks entirely
 
 ---
 
-## 十、注意事项
+## 9. How to Continue Development
 
-1. **不要修改 git config**(用户偏好)
-2. **代理必须用 socks5h**(不是 socks5,前者远端 DNS)
-3. **HTTPS 推送需要 PAT**,不要让用户把 PAT 发给我(让他在自己终端 push)
-4. **CLAUDE.md 注入用追加**,绝不能覆盖用户原有内容
-5. **永远不要删除文件**,只移动到 snapshots/ 或废纸篓
-6. **doc_id 一旦生成永不变**(文件改名也不变)
-7. **测试时不要污染 `~/Desktop/persistent-document/`**,创建独立测试目录或显式确认
-8. **PAT 暴露事件**: 用户之前粘贴了 PAT `ghp_D2eY...` 到对话,**用户必须自己撤销**(GitHub Settings → Developer settings → Personal access tokens → Revoke)
+### New Session / Post-Compression Recovery Flow
+1. Read `~/Desktop/ai-memory/DEV-PROGRESS.md` (this document)
+2. Read latest task state (`TaskList` or Section 5 of this document)
+3. Use `TaskUpdate` to mark the relevant task as in_progress
+4. Continue as needed:
+   - Write the next `commands/<name>.md`
+   - Or run real project tests under `~/Desktop/persistent-document/`
+   - Or tune existing command docs
+
+### Template for Writing Command Docs
+- Frontmatter: `name` + `description`
+- Sections: Purpose / Usage / Prerequisites / Flow / Edge Cases / Output Style / Reference
+- English throughout
+- Emojis: ✅ ❌ ⚠️ 📋 📁 📝 💡 📊 🔍 🗜️ 🚨
 
 ---
 
-**压缩上下文后,直接说"继续开发",我会读此文档恢复状态。**
+## 10. Important Notes
+
+1. **Do not modify git config** (user preference)
+2. **Proxy must use socks5h** (not socks5 — the former does remote DNS)
+3. **HTTPS push requires a PAT** — never let users paste their PAT into conversation (have them push in their own terminal)
+4. **CLAUDE.md injection uses append** — never overwrite existing user content
+5. **Never delete files** — only move to snapshots/ or Trash
+6. **doc_id is immutable once generated** (even if the file is renamed)
+7. **Don't pollute `~/Desktop/persistent-document/` during testing** — create an independent test directory or ask explicitly
+8. **PAT exposure incident: handled by user (revoked)**
+
+---
+
+**After context compression, just say "continue development" and I will read this document to restore state.**

@@ -1,165 +1,165 @@
 ---
 name: aim-help
-description: 显示所有 ai-memory 命令的内置帮助。列出每个命令的用法、前置条件和详细文档链接。只读。
+description: Display built-in help for all ai-memory commands. Lists usage, prerequisites, and links to detailed docs for each command. Read-only.
 ---
 
-# /aim-help — 内置帮助
+# /aim-help — Built-in Help
 
-## 用途
+## Purpose
 
-显示所有 ai-memory 命令的帮助。作为对话内的手册,用户无需离开 Claude Code 即可查询语法。
+Display help for all ai-memory commands. Acts as an in-conversation reference manual so users can look up syntax without leaving Claude Code.
 
-适用场景:
-- 首次使用 ai-memory
-- 忘了某个命令的确切语法
-- 想发现还没用过的命令
+Use cases:
+- First time using ai-memory
+- Forgot the exact syntax for a command
+- Want to discover commands you haven't used yet
 
-## 用法
+## Usage
 
 ```
 /aim-help [command-name]
 ```
 
-- 无参数:按类别分组展示所有命令。
-- 带命令名(如 `/aim-help aim-add`):显示该命令的详细帮助。
+- No arguments: display all commands grouped by category.
+- With a command name (e.g. `/aim-help aim-add`): show detailed help for that command.
 
-## 前置条件
+## Prerequisites
 
-无。始终可用。
+None. Always available.
 
-## 流程
+## Workflow
 
-### 步骤 1:确定输出模式
+### Step 1: Determine output mode
 
-- 如果参数匹配已知命令名(如 `aim-add`、`aim-init`):**单命令模式**。
-- 如果无参数或无法识别:**概览模式**。
+- If the argument matches a known command name (e.g. `aim-add`, `aim-init`): **single-command mode**.
+- If no argument or unrecognized: **overview mode**.
 
-### 步骤 2:概览模式 — 渲染命令目录
+### Step 2: Overview mode — render command catalog
 
-读取 Skill 目录下所有 `commands/*.md` 文件。从每个文件提取:
-- frontmatter 中的 `name` 和 `description`。
-- `## 用法` 章节中的用法行。
-- 沙盒徽章(来自 SKILL.md 中的表)。
+Read all `commands/*.md` files in the Skill directory. Extract from each file:
+- `name` and `description` from the frontmatter.
+- Usage line from the `## Usage` section.
+- Sandbox badge (from the table in SKILL.md).
 
-按类别分组:
+Group by category:
 
-| 类别 | 命令 |
+| Category | Commands |
 |---|---|
-| 🚀 入门 | `/aim-init`、`/aim-help`、`/aim-identity` |
-| 📝 日常记录 | `/aim-add`、`/aim-append`、`/aim-edit`、`/aim-archive` |
-| 🗜️ 压缩归档 | `/aim-compress`、`/aim-expand` |
-| 🔍 状态与维护 | `/aim-status`、`/aim-verify`、`/aim-rebuild` |
-| 🛠️ 管理 | `/aim-list`、`/aim-uninit` |
+| 🚀 Getting Started | `/aim-init`, `/aim-help`, `/aim-identity` |
+| 📝 Daily Notes | `/aim-add`, `/aim-append`, `/aim-edit`, `/aim-archive` |
+| 🗜️ Compress & Archive | `/aim-compress`, `/aim-expand` |
+| 🔍 Status & Maintenance | `/aim-status`, `/aim-verify`, `/aim-rebuild` |
+| 🛠️ Management | `/aim-list`, `/aim-uninit` |
 
-渲染输出(见输出风格)。
+Render output (see Output Style).
 
-### 步骤 3:单命令模式 — 渲染详情
+### Step 3: Single-command mode — render details
 
-查找 `commands/<name>.md`。提取:
-- 用途(首段)。
-- 含所有 flag 的用法。
-- 前置条件。
-- 快速示例。
+Look up `commands/<name>.md`. Extract:
+- Purpose (opening paragraph).
+- Usage with all flags.
+- Prerequisites.
+- Quick example.
 
-作为聚焦的帮助卡片展示。
+Display as a focused help card.
 
-### 步骤 4:输出
+### Step 4: Output
 
-#### 概览输出
-
-```
-📖 ai-memory 命令帮助
-
-ai-memory 让 Claude Code 拥有跨会话的项目记忆能力。
-首次使用请运行: /aim-init
-
-🚀 入门
-  /aim-init [项目名]            初始化项目记忆(每个项目仅一次)
-  /aim-help [命令名]            显示本帮助
-  /aim-identity                 查看/修改用户身份
-
-📝 日常记录
-  /aim-add [内容]               添加新文档(总是新建)
-  /aim-append <doc_id>          在现有文档后追加章节
-  /aim-edit <doc_id>            修改现有文档
-  /aim-archive <doc_id>         归档文档到快照
-
-🗜️ 压缩归档
-  /aim-compress [--dry-run]     合并活跃文档为压缩文档
-  /aim-expand <doc_id>          从快照反向展开细节
-
-🔍 状态与维护
-  /aim-status                   查看项目状态(token、Git、健康度)
-  /aim-verify [--fix]           一致性检查
-  /aim-rebuild [--dry-run]      从文件系统重建 INDEX.yaml
-
-🛠️ 管理
-  /aim-list                     列出所有 ai-memory 项目
-  /aim-uninit                   卸载 Skill(保留用户数据)
-
-💡 提示
-  - 大多数命令支持中文参数
-  - 输入 /aim-help <命令名> 查看单个命令详情
-  - 例: /aim-help aim-add
-```
-
-#### 单命令输出
+#### Overview output
 
 ```
-📖 /aim-add — 添加新文档
+📖 ai-memory Command Help
 
-用途
-  在项目记忆中创建新的 HTML 文档。总是新建文件,
-  从不修改已有文档。用 /aim-append 扩展,用 /aim-edit 修改。
+ai-memory gives Claude Code cross-session project memory capabilities.
+To get started, run: /aim-init
 
-用法
-  /aim-add [自然语言内容或描述]
+🚀 Getting Started
+  /aim-init [project-name]          Initialize project memory (once per project)
+  /aim-help [command-name]          Show this help
+  /aim-identity                     View or modify user identity
 
-  - 提供参数:直接使用作为内容
-  - 无参数:提示用户输入
+📝 Daily Notes
+  /aim-add [content]                Add a new document (always creates new)
+  /aim-append <doc_id>              Append a section to an existing document
+  /aim-edit <doc_id>                Edit an existing document
+  /aim-archive <doc_id>             Archive a document to a snapshot
 
-前置条件
-  - 项目已初始化(/aim-init 已运行)
-  - 用户身份已建立
+🗜️ Compress & Archive
+  /aim-compress [--dry-run]         Merge active documents into a compressed doc
+  /aim-expand <doc_id>              Expand details back from a snapshot
 
-示例
-  /aim-add 我们今天讨论了认证模块的方案,采用 JWT + Refresh Token...
-  /aim-add(然后等待提示)
+🔍 Status & Maintenance
+  /aim-status                       View project status (tokens, git, health)
+  /aim-verify [--fix]               Consistency check
+  /aim-rebuild [--dry-run]          Rebuild INDEX.yaml from the filesystem
 
-相关命令
+🛠️ Management
+  /aim-list                         List all ai-memory projects
+  /aim-uninit                       Uninstall Skill (preserves user data)
+
+💡 Tips
+  - Most commands support natural language arguments
+  - Type /aim-help <command-name> for details on a single command
+  - Example: /aim-help aim-add
+```
+
+#### Single-command output
+
+```
+📖 /aim-add — Add a New Document
+
+Purpose
+  Create a new HTML document in project memory. Always creates a new file,
+  never modifies an existing one. Use /aim-append to extend, /aim-edit to modify.
+
+Usage
+  /aim-add [natural language content or description]
+
+  - With argument: use it directly as content
+  - Without argument: prompt the user for input
+
+Prerequisites
+  - Project has been initialized (/aim-init has been run)
+  - User identity has been established
+
+Example
+  /aim-add We discussed the auth module approach today, going with JWT + Refresh Token...
+  /aim-add (then wait for the prompt)
+
+Related Commands
   /aim-append, /aim-edit, /aim-status
 
-完整文档: commands/aim-add.md
+Full docs: commands/aim-add.md
 ```
 
-## 边界情况
+## Edge Cases
 
-### 情况 A:命令名未找到
+### Case A: Command name not found
 
-- 输出:`未知命令 [xxx]。运行 /aim-help(无参数)查看所有命令列表`。
+- Output: `Unknown command [xxx]. Run /aim-help (no arguments) to see all commands.`
 
-### 情况 B:用户通过自然语言求助某命令
+### Case B: User asks for help via natural language
 
-- 如 `/aim-help how to add document` → 识别意图,路由到 `aim-add`。
+- e.g. `/aim-help how to add document` — identify the intent and route to `aim-add`.
 
-### 情况 C:commands 目录缺失或为空
+### Case C: commands directory missing or empty
 
-- 正常安装下不应发生。
-- 如发生:报错 `Skill 安装不完整,commands 目录缺失。请重新安装`。
+- Should not happen with a proper installation.
+- If it does: report `Skill installation incomplete — commands directory missing. Please reinstall.`
 
-## 输出风格
+## Output Style
 
-- 全程中文。
-- 用 emoji 标题分组命令(🚀 📝 🗜️ 🔍 🛠️)。
-- 每个命令一行,带用法提示。
-- 概览保持在 25 行以内(一屏)。
-- 单命令视图用章节标题(用途/用法/前置条件/示例/相关命令)。
+- Write entirely in English.
+- Use emoji headers to group commands (🚀 📝 🗜️ 🔍 🛠️).
+- One line per command with a usage hint.
+- Keep the overview to 25 lines or fewer (one screen).
+- Single-command view uses section headers (Purpose / Usage / Prerequisites / Example / Related Commands).
 
-## 软沙盒行为
+## Soft Sandbox Behavior
 
-- 公共命令 — 无限制。
+- Public command — no restrictions.
 
-## 参考
+## References
 
-- 自动从 `commands/*.md` 发现。
-- 交叉引用 SKILL.md 获取沙盒表。
+- Auto-discovered from `commands/*.md`.
+- Cross-references SKILL.md for the sandbox table.

@@ -1,229 +1,229 @@
 ---
 name: aim-verify
-description: 检查 INDEX.yaml 与文件系统的一致性。报告孤儿文件、缺失文件、元数据漂移和断链引用。只读诊断工具。
+description: Check INDEX.yaml consistency against the filesystem. Reports orphan files, missing files, metadata drift, and broken references. Read-only diagnostic tool.
 ---
 
-# /aim-verify — 一致性检查
+# /aim-verify — Consistency Check
 
-## 用途
+## Purpose
 
-审计 `INDEX.yaml` 与文件系统之间的一致性。检测:
-- 孤儿文件(在磁盘上但不在 INDEX 中)
-- 缺失文件(在 INDEX 中但磁盘上没有)
-- 元数据漂移(INDEX 字段与文件头不一致)
-- 断链引用(snapshots 指向空地址、压缩文档缺源)
-- Token 计算偏差(INDEX tokens 与实际估算不符)
+Audit the consistency between `INDEX.yaml` and the filesystem. Detects:
+- Orphan files (on disk but not in INDEX)
+- Missing files (in INDEX but not on disk)
+- Metadata drift (INDEX fields do not match file headers)
+- Broken references (snapshots pointing to empty locations, compressed docs missing sources)
+- Token calculation discrepancies (INDEX tokens do not match actual estimates)
 
-**只读。** 绝不修改任何内容。搭配 `/aim-rebuild` 来修复此处发现的问题。
+**Read-only.** Never modifies anything. Pair with `/aim-rebuild` to fix issues found here.
 
-适用场景:
-- `/aim-rebuild` 之后确认其结果正确
-- 周期性健康检查
-- `/aim-status` 显示异常时
-- 压缩前确保状态干净
+Typical use cases:
+- Confirming `/aim-rebuild` produced correct results
+- Periodic health checks
+- When `/aim-status` shows anomalies
+- Ensuring a clean state before compression
 
-## 用法
+## Usage
 
 ```
 /aim-verify [--fix]
 ```
 
-- 无参数:仅报告。
-- `--fix`:提示应用安全的自动修复(更新陈旧 INDEX 字段、移除断链条目)。不安全的修复仍需人工干预。
+- No arguments: report only.
+- `--fix`: prompt to apply safe auto-fixes (update stale INDEX fields, remove broken entries). Unsafe fixes still require manual intervention.
 
-## 前置条件
+## Prerequisites
 
-- 项目已初始化。
-- INDEX.yaml 可解析(否则建议先 `/aim-rebuild`)。
+- Project must be initialized.
+- INDEX.yaml must be parsable (otherwise suggest `/aim-rebuild` first).
 
-## 流程
+## Workflow
 
-### 步骤 1:解析当前项目
+### Step 1: Resolve the current project
 
-同 `/aim-status` 步骤 1。
+Same as `/aim-status` Step 1.
 
-### 步骤 2:解析 INDEX.yaml
+### Step 2: Parse INDEX.yaml
 
-如果解析失败:停止并提示 `INDEX.yaml 解析失败,请先运行 /aim-rebuild 修复`。
+If parsing fails: stop and prompt `INDEX.yaml parse failed. Run /aim-rebuild first to fix.`
 
-### 步骤 3:校验每个活跃条目
+### Step 3: Verify each active entry
 
-对 `INDEX.yaml` 的 `active` 中每个条目:
+For each entry in `INDEX.yaml` `active`:
 
-1. **文件存在性**:`<root>/<file>` 是否存在?
-   - 缺失 → 记录 `MISSING_FILE` 错误。
-2. **元数据匹配**:读取 HTML 头,与 INDEX 字段比较:
-   - `doc_id` 必须匹配
-   - `title` 应匹配(不一致警告)
-   - `owner` 必须匹配
-   - `status` 必须是 `active`
-   - `version` 应匹配
-3. **Token 准确性**:从文件大小重新计算 tokens,与 INDEX `tokens` 字段比较。
-   - 偏差 > 20% 警告(INDEX 陈旧)。
-4. **贡献者一致性**:`contributors` 中每个名字都应能通过 identity.json 或 git config 解析。
-5. **日期合理性**:`created <= updated`,且都合理(不在未来,不早于项目初始化)。
+1. **File existence**: does `<root>/<file>` exist?
+   - Missing → record a `MISSING_FILE` error.
+2. **Metadata match**: read the HTML header, compare against INDEX fields:
+   - `doc_id` must match
+   - `title` should match (warn on mismatch)
+   - `owner` must match
+   - `status` must be `active`
+   - `version` should match
+3. **Token accuracy**: re-estimate tokens from file size, compare against INDEX `tokens` field.
+   - Warn if deviation > 20% (INDEX is stale).
+4. **Contributor consistency**: every name in `contributors` should be resolvable via identity.json or git config.
+5. **Date sanity**: `created <= updated`, and both are reasonable (not in the future, not before project initialization).
 
-### 步骤 4:校验压缩条目
+### Step 4: Verify compressed entries
 
-对 `INDEX.yaml` 的 `compressed`:
+For `compressed` in INDEX.yaml:
 
-1. `<root>/<compressed-file>` 文件存在?
-2. 元数据头有 `owner=__project__`?
-3. 归档区引用的 doc_id — 是否仍有作为活跃文件存在?(可能表示压缩操作未完成。)
-4. Token 估算与实际文件大小的合理性检查。
+1. Does `<root>/<compressed-file>` exist?
+2. Does the metadata header have `owner=__project__`?
+3. Do the doc_ids referenced in the archive area still exist as active files? (May indicate an incomplete compression.)
+4. Sanity check of token estimate vs. actual file size.
 
-### 步骤 5:校验快照
+### Step 5: Verify snapshots
 
-对 `INDEX.yaml` 的每个 `snapshots` 条目:
+For each entry in `INDEX.yaml` `snapshots`:
 
-1. `<root>/snapshots/<date>/` 目录存在?
-2. 文件数与 INDEX 匹配?
-3. 内部每个文件元数据有效?
+1. Does `<root>/snapshots/<date>/` directory exist?
+2. Does file count match INDEX?
+3. Is each file's metadata valid inside?
 
-同时扫描文件系统 `<root>/snapshots/*/` 中 INDEX 未记录的目录(孤儿)。
+Also scan the filesystem for directories under `<root>/snapshots/*/` that are not recorded in INDEX (orphans).
 
-### 步骤 6:扫描孤儿文件
+### Step 6: Scan for orphan files
 
-遍历 `<root>/*.html`(分散式:`<project>/.ai-memory/*.html`):
+Walk `<root>/*.html` (distributed: `<project>/.ai-memory/*.html`):
 
-- 任何带有效 `<!-- aim:... -->` 头但不在任何 INDEX 列表中的 HTML 文件 → 孤儿。
-- 任何没有元数据头的 HTML 文件 → 非托管(建议用户删除或补充元数据)。
+- Any HTML file with a valid `<!-- aim:... -->` header that is not in any INDEX list → orphan.
+- Any HTML file without a metadata header → unmanaged (suggest user delete or add metadata).
 
-### 步骤 7:交叉引用检查
+### Step 7: Cross-reference checks
 
-- INDEX 中每个 `doc_id` 应唯一。
-- 每个 `file` 路径应唯一。
-- `compressed` 列表至多一条(单文件压缩模型)。
-- `last_modified_by` 应在 `contributors` 列表中。
+- Every `doc_id` in INDEX should be unique.
+- Every `file` path should be unique.
+- `compressed` list should have at most one entry (single-file compression model).
+- `last_modified_by` should appear in the `contributors` list.
 
-### 步骤 8:对发现分类
+### Step 8: Classify findings
 
-按严重度分组:
+Group by severity:
 
-| 严重度 | 含义 | 示例 |
+| Severity | Meaning | Example |
 |---|---|---|
-| 🔴 ERROR | 数据丢失风险,必须修复 | 缺失文件、解析失败、doc_id 重复 |
-| 🟠 WARN | 漂移,应修复 | tokens 陈旧、title 不一致、旧备份文件 |
-| 🟡 INFO | 信息提示 | 孤儿文件(可能是用户自管)、非托管 HTML |
-| 🟢 OK | 所有检查通过 | (仅当无其他问题时显示) |
+| 🔴 ERROR | Data loss risk, must fix | Missing file, parse failure, duplicate doc_id |
+| 🟠 WARN | Drift, should fix | Stale tokens, title mismatch, old backup files |
+| 🟡 INFO | Informational | Orphan file (may be user-managed), unmanaged HTML |
+| 🟢 OK | All checks passed | (Only shown when no other issues exist) |
 
-### 步骤 9:应用自动修复(若 --fix)
+### Step 9: Apply auto-fixes (if --fix)
 
-对每个有安全自动解决方案的 WARN/INFO:
+For each WARN/INFO that has a safe automated fix:
 
-1. **Tokens 陈旧**:重算并更新 INDEX。
-2. **Title 不一致**:取文件的 title(以文件系统为准)。
-3. **`last_modified_by` 缺失 contributors**:添加。
+1. **Stale tokens**: recalculate and update INDEX.
+2. **Title mismatch**: use the file's title (filesystem is source of truth).
+3. **`last_modified_by` missing from contributors**: add it.
 
-跳过以下自动修复:
-- 🔴 ERROR 项(需要用户判断)
-- 孤儿文件(可能是有意的)
-- 任何会删除内容的操作
+Skip auto-fixes for:
+- 🔴 ERROR items (require user judgment)
+- Orphan files (may be intentional)
+- Any operation that would delete content
 
-写入前,展示拟定变更并请求确认:
-
-```
-📋 准备自动修复 3 项
-
-1. aim-20260620-xxx: tokens 800 → 920 (重新计算)
-2. aim-20260615-yyy: title 「旧」→「新」(从文件头读取)
-3. aim-20260610-zzz: 添加 contributor u-b1c2d3e4
-
-确认执行? (Y/n)
-```
-
-写入前备份 INDEX.yaml(同 `/aim-rebuild`)。
-
-### 步骤 10:输出报告
+Before writing, show proposed changes and ask for confirmation:
 
 ```
-🔍 一致性检查报告
+📋 Ready to auto-fix 3 items
 
-📊 总览
-   检查项: 24
-   通过: 21
-   警告: 2
-   错误: 1
+1. aim-20260620-xxx: tokens 800 → 920 (recalculated)
+2. aim-20260615-yyy: title "Old Title" → "New Title" (read from file header)
+3. aim-20260610-zzz: add contributor u-b1c2d3e4
 
-🔴 错误 (1)
+Proceed? (Y/n)
+```
+
+Back up INDEX.yaml before writing (same as `/aim-rebuild`).
+
+### Step 10: Output the report
+
+```
+🔍 Consistency Check Report
+
+📊 Summary
+   Checks: 24
+   Passed: 21
+   Warnings: 2
+   Errors: 1
+
+🔴 Errors (1)
    1. [MISSING_FILE] aim-20260610-yyy
-      INDEX 记录文件 `2026-06-10-old.html`,但文件不存在
-      建议: 从 git 恢复,或运行 /aim-rebuild 移除此条目
+      INDEX records file `2026-06-10-old.html` but it does not exist
+      Fix: Restore from git, or run /aim-rebuild to remove this entry
 
-🟠 警告 (2)
+🟠 Warnings (2)
    1. [TOKEN_STALE] aim-20260620-xxx
-      INDEX 记录 800 tokens,实际约 920 tokens
-      建议: 运行 /aim-verify --fix 自动更新
+      INDEX records 800 tokens, actual ~920 tokens
+      Fix: Run /aim-verify --fix to auto-update
    2. [TITLE_DRIFT] aim-20260615-yyy
-      INDEX: 「旧标题」,文件头: 「新标题」
-      建议: 运行 /aim-verify --fix 以文件为准
+      INDEX: "Old Title", file header: "New Title"
+      Fix: Run /aim-verify --fix to use file as source of truth
 
-🟡 提示 (1)
+🟡 Info (1)
    1. [ORPHAN_FILE] old-notes.html
-      文件存在但未纳入 INDEX,可能手动添加
-      建议: 如需管理,运行 /aim-add 重新登记
+      File exists but is not in INDEX — may have been added manually
+      Fix: Run /aim-add to register if you want it managed
 
-🟢 通过的检查 (21 项)
-   ✅ 所有 doc_id 唯一
-   ✅ 所有 file 路径唯一
-   ✅ compressed 文档完整
-   ✅ snapshots 目录一致
+🟢 Passed Checks (21 items)
+   ✅ All doc_ids unique
+   ✅ All file paths unique
+   ✅ Compressed document intact
+   ✅ Snapshot directories consistent
    ...
 
-📝 下一步
-   - /aim-verify --fix    自动修复可修复项
-   - /aim-rebuild         完全重建 INDEX
-   - 手动处理错误项后再次运行 /aim-verify
+📝 Next Steps
+   - /aim-verify --fix    Auto-fix fixable items
+   - /aim-rebuild         Fully rebuild INDEX
+   - Fix errors manually, then re-run /aim-verify
 ```
 
-## 边界情况
+## Edge Cases
 
-### 情况 A:INDEX.yaml 自身解析失败
+### Case A: INDEX.yaml itself fails to parse
 
-- 立即停止。
-- 建议:`INDEX.yaml 解析失败,请运行 /aim-rebuild`。
-- 不要尝试部分校验。
+- Stop immediately.
+- Suggest: `INDEX.yaml parse failed. Run /aim-rebuild.`
+- Do not attempt partial verification.
 
-### 情况 B:项目活跃文档为零且压缩文档为零
+### Case B: Project has zero active documents and zero compressed documents
 
-- 合法状态(刚初始化)。
-- 报告:`🟢 项目为空,无内容可检查`
+- Valid state (freshly initialized).
+- Report: `🟢 Project is empty — nothing to check.`
 
-### 情况 C:identity.json 缺失
+### Case C: identity.json is missing
 
-- 无法解析贡献者姓名。
-- 警告但继续:`无法解析用户名,以 ID 形式显示`
+- Cannot resolve contributor names.
+- Warn but continue: `Cannot resolve usernames — showing IDs instead.`
 
-### 情况 D:有 Git 历史可用
+### Case D: Git history is available
 
-- 可选地交叉校验 `last_modified_by` 与实际 git 提交者。
-- 如不一致:🟠 WARN(INDEX 可能陈旧)。
+- Optionally cross-check `last_modified_by` against actual git committers.
+- If mismatch: 🟠 WARN (INDEX may be stale).
 
-### 情况 E:--fix 中途遇到不安全变更
+### Case E: Unsafe change encountered during --fix
 
-- 中止整个修复批次(不要应用部分修复)。
-- 如有写入发生,从备份还原。
-- 报告尝试了什么以及为何中止。
+- Abort the entire fix batch (do not apply partial fixes).
+- If any writes occurred, restore from backup.
+- Report what was attempted and why it was aborted.
 
-### 情况 F:某检查需要网络(如身份同步)
+### Case F: A check requires network (e.g., identity sync)
 
-- 跳过该检查,在报告中提示:`跳过 X 检查 (需要网络)`
+- Skip that check, note in report: `Skipped X check (requires network).`
 
-## 输出风格
+## Output Style
 
-- 所有标签用中文。
-- 严重度 emoji:🔴 🟠 🟡 🟢
-- 问题代码用 `[UPPER_SNAKE_CASE]` 以便 grep。
-- 对齐问题编号与描述。
-- 总览区始终先行显示计数。
-- 长文件列表用 `... 及其他 N 项` 截断,并提供 `--detail` 选项。
+- All labels in English.
+- Severity emoji: 🔴 🟠 🟡 🟢
+- Issue codes in `[UPPER_SNAKE_CASE]` for easy grep.
+- Align issue numbers with descriptions.
+- Summary counts always shown first.
+- Truncate long file lists with `... and N more`, and offer a `--detail` option.
 
-## 软沙盒行为
+## Soft Sandbox Behavior
 
-- `/aim-verify` 是**公共命令** — 无沙盒限制。
-- 默认只读;`--fix` 模式仅触碰 INDEX.yaml 缓存(不碰内容),对任何用户都视为安全。
+- `/aim-verify` is a **public command** — no sandbox restrictions.
+- Read-only by default; `--fix` mode only touches the INDEX.yaml cache (not content), and is considered safe for any user.
 
-## 参考
+## References
 
-- 配套命令:`/aim-rebuild`、`/aim-status`
-- 概念:`reference/rule-diff-verification.md`
+- Companion commands: `/aim-rebuild`, `/aim-status`
+- Concept: `reference/rule-diff-verification.md`

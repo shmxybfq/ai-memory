@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
-<!-- aim:doc_id={{DOC_ID}} title=项目压缩文档-{{PROJECT_NAME}} tags=compressed created={{CREATED}} created_by={{CREATED_BY}} owner=__project__ status=active source=compress version=1 sources={{SOURCES}} -->
-<title>项目压缩文档 - {{PROJECT_NAME}}</title>
+<!-- aim:doc_id={{DOC_ID}} title=Compressed Project Doc-{{PROJECT_NAME}} tags=compressed created={{CREATED}} created_by={{CREATED_BY}} owner=__project__ status=active source=compress version=1 sources={{SOURCES}} -->
+<title>Compressed Project Doc - {{PROJECT_NAME}}</title>
 <style>
   body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; max-width: 900px; margin: 0 auto; padding: 20px; line-height: 1.7; color: #333; }
   h1 { border-bottom: 3px solid #4a90d9; padding-bottom: 10px; color: #1a1a1a; }
@@ -28,54 +28,54 @@
 </head>
 <body>
 
-<h1>项目压缩文档 - {{PROJECT_NAME}}</h1>
+<h1>Compressed Project Doc - {{PROJECT_NAME}}</h1>
 
 <p>owner: <code>__project__</code> | last compress: {{CREATED}} by {{CREATED_BY_NAME}} | version: 1</p>
 
 <div class="highlight">
-<strong>如何阅读这份文档：</strong>
+<strong>How to read this document:</strong>
 <ul>
-<li><strong>当前有效区</strong>：AI 默认读这里,包含项目当前还在用的核心知识</li>
-<li><strong>历史归档区</strong>：deprecated 内容,AI 按需扩展阅读</li>
-<li>每个章节标注了来源文档和原作者</li>
+<li><strong>Active section</strong>: AI reads here by default. Contains core knowledge currently in use by the project.</li>
+<li><strong>Archive section</strong>: Deprecated content. AI reads on demand.</li>
+<li>Each section is annotated with source documents and original authors.</li>
 </ul>
 </div>
 
 <section id="active">
-<h2><span class="section-tag">当前有效</span>一、项目概述</h2>
+<h2><span class="section-tag">Active</span>1. Project Overview</h2>
 
 {{PROJECT_OVERVIEW}}
 
-<h2>二、架构演进</h2>
+<h2>2. Architecture Evolution</h2>
 
 {{ARCHITECTURE_EVOLUTION}}
 
-<h2>三、当前架构</h2>
+<h2>3. Current Architecture</h2>
 
 {{CURRENT_ARCHITECTURE}}
 
-<h2>四、核心组件</h2>
+<h2>4. Core Components</h2>
 
 {{CORE_COMPONENTS}}
 
-<h2>五、技术选型</h2>
+<h2>5. Technology Choices</h2>
 
 {{TECH_CHOICES}}
 
-<h2>六、关键决策记录</h2>
+<h2>6. Key Decisions</h2>
 
 {{KEY_DECISIONS}}
 
-<h2>七、已知限制与待办</h2>
+<h2>7. Known Limitations &amp; TODOs</h2>
 
 {{KNOWN_LIMITATIONS}}
 
 </section>
 
 <section id="archive">
-<h2><span class="section-tag" style="background:#999;">历史归档</span>deprecated 内容</h2>
+<h2><span class="section-tag" style="background:#999;">Archive</span>Deprecated Content</h2>
 
-<p class="deprecated"><em>以下内容已被后续迭代替代或不再使用,但保留以备追溯。AI 默认不读这里。</em></p>
+<p class="deprecated"><em>The following content has been superseded by later iterations or is no longer in use, but is retained for traceability. AI does not read this section by default.</em></p>
 
 {{ARCHIVE_CONTENT}}
 
@@ -84,10 +84,10 @@
 <hr>
 
 <div class="highlight">
-<strong>压缩元数据：</strong>
+<strong>Compression metadata:</strong>
 <ul>
 <li>doc_id: {{DOC_ID}}</li>
-<li>owner: __project__ (公共)</li>
+<li>owner: __project__ (shared)</li>
 <li>version: 1</li>
 <li>created: {{CREATED}}</li>
 <li>created_by: {{CREATED_BY_NAME}} ({{CREATED_BY}})</li>

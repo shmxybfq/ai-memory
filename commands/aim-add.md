@@ -1,468 +1,468 @@
 ---
 name: aim-add
-description: 向项目记忆添加新文档。总是创建新文件(从不修改已有文档)。用于记录知识、决策、调试笔记或总结。
+description: Add a new document to project memory. Always creates a new file (never modifies existing documents). Used to record knowledge, decisions, debugging notes, or summaries.
 ---
 
-# /aim-add — 添加新文档
+# /aim-add -- Add New Document
 
-## 用途
+## Purpose
 
-在项目记忆目录中创建新的 HTML 文档,嵌入正确的元数据并更新 INDEX.yaml。**总是创建新文件** — 扩展已有文档用 `/aim-append`,修改已有文档用 `/aim-edit`。
+Create a new HTML document in the project memory directory with proper metadata and an updated INDEX.yaml. **Always creates a new file** -- use `/aim-append` to extend an existing document, or `/aim-edit` to modify one.
 
-## 用法
+## Usage
 
 ```
-/aim-add [自然语言内容或描述]
+/aim-add [natural language content or description]
 ```
 
-- 如果参数提供了内容,直接使用。
-- 如果没有参数,请用户粘贴内容或描述要记录什么。
+- If arguments are provided, use them directly as the content.
+- If no arguments are given, prompt the user to paste content or describe what to record.
 
-## 前置条件
+## Prerequisites
 
-- 项目必须已初始化(已运行 `/aim-init`)。检测方式:
-  - 集中式模式:`<root>/<subdir>/INDEX.yaml` 存在
-  - 分散式模式:`<cwd>/.ai-memory/INDEX.yaml` 存在
-- 如果未初始化:停止并提示:`项目未初始化,请先运行 /aim-init`
+- The project must already be initialized (has run `/aim-init`). Detection:
+  - Centralized mode: `<root>/<subdir>/INDEX.yaml` exists
+  - Distributed mode: `<cwd>/.ai-memory/INDEX.yaml` exists
+- If not initialized: stop and prompt: `Project not initialized. Please run /aim-init first.`
 
-## 流程
+## Workflow
 
-### 步骤 1:解析当前项目
+### Step 1: Resolve Current Project
 
-1. 检查当前工作目录。
-2. 尝试查找项目:
-   - **分散式模式**:查找 `<cwd>/.ai-memory/INDEX.yaml`
-   - **集中式模式**:扫描已知根目录(`~/Desktop/persistent-document/` 以及记录在 `~/.claude/ai-memory/projects.json` 中的其他根),匹配包含 INDEX.yaml 且与当前 cwd 上下文相符的子目录。
-3. 如果找到多个项目,询问用户选哪个。
-4. 如果没找到项目:报错并停止。
+1. Check the current working directory.
+2. Attempt to locate the project:
+   - **Distributed mode**: look for `<cwd>/.ai-memory/INDEX.yaml`
+   - **Centralized mode**: scan known root directories (`~/Desktop/persistent-document/` and any others registered in `~/.claude/ai-memory/projects.json`), matching subdirectories that contain an INDEX.yaml and align with the current cwd context.
+3. If multiple projects are found, ask the user which one to use.
+4. If no project is found: report error and stop.
 
-读取 INDEX.yaml,保存为 `INDEX`。
+Read INDEX.yaml and store it as `INDEX`.
 
-### 步骤 2:解析用户身份
+### Step 2: Resolve User Identity
 
-1. 读取 `~/.claude/ai-memory/identity.json`。
-2. 如果缺失:报错 `用户身份未初始化,请重新运行 /aim-init`。
-3. 保存为 `USER`。
+1. Read `~/.claude/ai-memory/identity.json`.
+2. If missing: report error `User identity not initialized. Please re-run /aim-init.`.
+3. Store it as `USER`.
 
-### 步骤 3:收集文档内容
+### Step 3: Collect Document Content
 
-**如果命令提供了参数**:直接作为 `RAW_CONTENT`。
+**If the command was invoked with arguments**: use them directly as `RAW_CONTENT`.
 
-**如果未提供**,提示用户:
+**If no arguments were provided**, prompt the user:
 ```
-请输入要记录的内容(可以是自然语言描述、技术决策、踩坑记录等):
-[等待用户输入,可能多行]
-```
-
-保存为 `RAW_CONTENT`。
-
-### 步骤 4:确定文档元数据
-
-#### 4.1 标题
-
-查看 RAW_CONTENT。如果开头是清晰主题,生成标题建议。
-
-询问用户:
-```
-建议标题: [基于内容生成的标题]
-请确认或修改(回车确认):
+Enter the content to record (can be a natural language description, technical decision, debugging notes, etc.):
+[Wait for user input, may span multiple lines]
 ```
 
-保存为 `TITLE`。
+Store as `RAW_CONTENT`.
 
-#### 4.2 来源
+### Step 4: Determine Document Metadata
 
-询问用户(带默认值):
+#### 4.1 Title
+
+Inspect RAW_CONTENT. If it opens with a clear topic, generate a title suggestion.
+
+Ask the user:
 ```
-文档来源:
-1. 对话(对话沉淀、决策记录)
-2. 踩坑(bug、问题排查)
-3. 外部(资料、链接整理)
-4. 决策(技术选型、方案对比)
-选择(1-4,默认 1):
-```
-
-保存为 `SOURCE`(对话/踩坑/外部/决策)。
-
-#### 4.3 标签
-
-询问用户(可选):
-```
-标签(逗号分隔,可选,如 auth,security,api):
+Suggested title: [generated title based on content]
+Confirm or modify (press Enter to confirm):
 ```
 
-为空则用 `[]`。否则解析为列表。保存为 `TAGS`。
+Store as `TITLE`.
 
-#### 4.4 文件名
+#### 4.2 Source
 
-从 TITLE 生成:
-- 空格替换为 `-`
-- 移除除 `-`、`_`、`.` 外的特殊字符
-- 加上日期前缀 `YYYY-MM-DD-`
-- 示例:`2026-06-21-auth-module-design.html`
-
-如果文件名与项目目录中已有文件冲突:
+Ask the user (with default):
 ```
-文件 [xxx.html] 已存在,是否:
-1. 自动加后缀(auth-module-design-2.html)
-2. 重新输入文件名
-选择(1/2):
+Document source:
+1. Conversation (dialogue capture, decision record)
+2. Pitfall (bug, troubleshooting)
+3. External (reference material, link collection)
+4. Decision (tech selection, solution comparison)
+Choose (1-4, default 1):
 ```
 
-保存为 `FILENAME`。
+Store as `SOURCE` (conversation/pitfall/external/decision).
 
-#### 4.5 文档 ID
+#### 4.3 Tags
 
-生成:`aim-` + `YYYYMMDD` + `-` + 6 位随机字母数字。
-示例:`aim-20260621-a3b2f1`。
-
-保存为 `DOC_ID`。
-
-### 步骤 5:生成 HTML 内容
-
-#### 5.1 角色定位
-
-**你不是"对话录音员",你是项目记忆沉淀助手。**
-
-读者是 6 个月后的某个新 Claude 会话 — 他需要快速理解项目、不再重新探索。他不会读你的原始对话,只读你写的这份文档。
-
-**核心目标**:从 RAW_CONTENT 中提炼**未来用得到的知识**,而不是记录发生了什么。
-
-> **失败模式警告**:LLM 沉淀文档时最常见的 4 种失败 — 写流水账、编造权威数字、保留试错过程、复制代码能推断的信息。下面 5.2-5.6 的规则用于防止这些失败。
-
-#### 5.2 必须写入(MUST include)
-
-1. **决策记录**:做了什么选择 + 排除其他方案的原因
-2. **不易从代码推断的事实**:架构原则、领域规则、业务约束、设计意图
-3. **踩坑的根因**(不是现象):为什么会有这个 bug、如何避免再犯
-4. **长期约束**:必须遵守的规则、不可违反的限制
-5. **关键配置/命令**:实际在用的版本号、文件路径、命令、配置值(原样保留)
-6. **工作流**:做某件事的标准步骤(命令序列、判断分支)
-
-#### 5.3 禁止写入(MUST NOT include)
-
-1. **对话流水账**:"我们讨论了 A 然后又讨论了 B" → 只留 B 的结论
-2. **试错过程**:"试了 X 失败、试了 Y 失败" → 只留最终方案 + 排除 X/Y 的原因
-3. **临时状态**:"目前是 X,以后可能改" → 等定下来再写
-4. **可推断信息**:从代码结构、函数签名、配置文件能直接读出来的
-5. **闲聊/客套**:"好的"、"明白了"、"我同意"
-6. **重复信息**:已经在压缩文档或同项目其他文档里的(可引用,不复制)
-7. **过期信息**:已被新决策覆盖的旧版本(如必须保留,标 `[deprecated]`)
-8. **编造内容**:没说的不写。模糊的标 `[待确认:具体什么]`,**绝不为了显得权威而编造数字/事实**
-
-#### 5.4 写作风格
-
-**段落结构**:
-- 结论先行:每段第一句给结论,后面补充理由/背景
-- 单段不超过 5 行,超过就拆分
-
-**信息密度**:
-- 单篇 800-2000 字(中文)。超 2000 字提示用户拆分,但不强制阻止
-- 不为凑字数写废话,不为简洁省关键信息
-
-**时效标注**:
-- 永久决策:不标
-- 临时决策:段首加 `[临时 - 计划 YYYY-MM-DD 前 ABCD]`
-- 待确认:`[待确认:具体什么]`
-- 已弃用:`[deprecated - 被 XXX 替代 @ YYYY-MM-DD]`
-
-**硬信息保护**(关键):
-- 版本号、文件路径、命令、配置值、API 名 → **原样保留**(不翻译、不改写、不简化)
-- 例:`React Navigation v6.1.4` 不能写成 `React Navigation v6`
-- 这些信息丢了就是永久丢失,不可恢复
-
-**来源标注**(可选但推荐):
-- 关键论断末尾标 `[来源:第N次对话]` 或 `[来源:用户明确告知]`
-- 让未来读者能追溯
-
-#### 5.5 结构模板(按 SOURCE 类型选用)
-
-**SOURCE=决策**:
+Ask the user (optional):
 ```
-## 背景
-(为什么要做这个决策)
+Tags (comma-separated, optional, e.g. auth,security,api):
+```
 
-## 方案对比
-| 方案 | 优点 | 缺点 |
+If empty, use `[]`. Otherwise parse as a list. Store as `TAGS`.
+
+#### 4.4 Filename
+
+Generate from TITLE:
+- Replace spaces with `-`
+- Remove special characters except `-`, `_`, `.`
+- Prepend with date prefix `YYYY-MM-DD-`
+- Example: `2026-06-21-auth-module-design.html`
+
+If the filename conflicts with an existing file in the project directory:
+```
+File [xxx.html] already exists. Options:
+1. Auto-append suffix (auth-module-design-2.html)
+2. Enter a different filename
+Choose (1/2):
+```
+
+Store as `FILENAME`.
+
+#### 4.5 Document ID
+
+Generate: `aim-` + `YYYYMMDD` + `-` + 6-character random alphanumeric string.
+Example: `aim-20260621-a3b2f1`.
+
+Store as `DOC_ID`.
+
+### Step 5: Generate HTML Content
+
+#### 5.1 Role Definition
+
+**You are not a "conversation transcript clerk." You are a project memory distillation assistant.**
+
+The reader is a future Claude session, 6 months from now, that needs to quickly understand the project without re-exploring it. That session will not read your raw conversation -- it will only read the document you produce.
+
+**Core objective**: extract **knowledge that will be useful in the future** from RAW_CONTENT, not merely record what happened.
+
+> **Failure mode warning**: The 4 most common failures when an LLM distills documentation -- writing a chronological log, fabricating authoritative numbers, retaining trial-and-error processes, copying information that is already inferrable from code. Rules 5.2-5.6 below are designed to prevent these failures.
+
+#### 5.2 Must-Write (ALWAYS include)
+
+1. **Decision records**: what was chosen + why alternatives were rejected
+2. **Facts not easily inferred from code**: architectural principles, domain rules, business constraints, design intent
+3. **Root causes of pitfalls** (not symptoms): why the bug existed and how to prevent recurrence
+4. **Long-term constraints**: rules that must be followed, limits that must not be violated
+5. **Key configurations/commands**: actual version numbers, file paths, commands, configuration values (preserve verbatim)
+6. **Workflows**: standard steps for a task (command sequences, decision branches)
+
+#### 5.3 Must-Not-Write (NEVER include)
+
+1. **Chronological logs**: "We discussed A, then we discussed B" -- only keep B's conclusion
+2. **Trial-and-error processes**: "Tried X and it failed, tried Y and it failed" -- only keep the final solution + reasons X/Y were rejected
+3. **Transient states**: "Currently X, might change later" -- wait until it's settled before writing
+4. **Inferrable information**: anything directly readable from code structure, function signatures, or config files
+5. **Chatter/pleasantries**: "OK", "Got it", "I agree"
+6. **Duplicate information**: content already present in compressed documents or other active project docs (reference it, do not copy)
+7. **Outdated information**: old versions superseded by new decisions (if retention is necessary, tag `[deprecated]`)
+8. **Fabricated content**: do not write what was not said. If something is uncertain, tag `[unconfirmed: specific detail]`. **Never invent numbers or facts to appear authoritative.**
+
+#### 5.4 Writing Style
+
+**Paragraph structure**:
+- Lead with the conclusion: the first sentence of every paragraph gives the takeaway; supporting reasoning/context follows
+- Limit each paragraph to 5 lines; split if longer
+
+**Information density**:
+- Target 800-2000 words per document (English equivalent). If exceeding 2000 words, prompt the user to split into multiple documents -- but do not forcibly block the write
+- Do not pad with filler to hit a word count; do not omit critical information for brevity
+
+**Temporal annotations**:
+- Permanent decisions: no annotation
+- Temporary decisions: prefix the paragraph with `[temporary - plan to resolve by YYYY-MM-DD via ABCD]`
+- Unconfirmed: `[unconfirmed: specific detail]`
+- Deprecated: `[deprecated - superseded by XXX as of YYYY-MM-DD]`
+
+**Hard information preservation** (critical):
+- Version numbers, file paths, commands, configuration values, API names -- **preserve verbatim** (do not translate, rephrase, or simplify)
+- Example: `React Navigation v6.1.4` must not become `React Navigation v6`
+- Once this information is lost, it is permanently unrecoverable
+
+**Source attribution** (optional but recommended):
+- After key assertions, append `[source: conversation N]` or `[source: explicitly stated by user]`
+- Enables future readers to trace provenance
+
+#### 5.5 Structure Templates (select by SOURCE type)
+
+**SOURCE=decision**:
+```
+## Background
+(Why this decision was needed)
+
+## Options Compared
+| Option | Pros | Cons |
 |---|---|---|
 | A | ... | ... |
 | B | ... | ... |
 
-## 最终选择
-(选了什么)
+## Final Choice
+(What was selected)
 
-## 理由
-(为什么选这个,排除其他的原因)
+## Rationale
+(Why this option, and why others were rejected)
 
-## 影响
-(这个决策带来的约束/后果)
+## Impact
+(Constraints and consequences introduced by this decision)
 ```
 
-**SOURCE=踩坑**:
+**SOURCE=pitfall**:
 ```
-## 现象
-(看起来什么样,可复现步骤)
+## Symptom
+(What it looks like, repro steps)
 
-## 根因
-(真正的原因,不是表象)
+## Root Cause
+(The real cause, not the surface observation)
 
-## 修复
-(怎么解决的,关键命令/代码)
+## Fix
+(How it was resolved, key commands/code)
 
-## 如何避免
-(下次怎么预防)
-```
-
-**SOURCE=外部**:
-```
-## 来源
-(链接/书名/作者)
-
-## 关键观点
-(提炼,不要原文复制)
-
-## 对本项目的启示
+## Prevention
+(How to avoid this going forward)
 ```
 
-**SOURCE=对话**:
+**SOURCE=external**:
 ```
-## 主题
-(这次讨论的核心是什么)
+## Source
+(Link, book title, author)
 
-## 关键结论
-(得出什么)
+## Key Takeaways
+(Distilled insights, not verbatim copy)
 
-## 决策与理由
-
-## 待办(如有)
+## Relevance to This Project
 ```
 
-#### 5.6 反例对比(避免这样的失败)
-
-**反例 1:流水账 → 结论先行**
-
-❌ 错误:
+**SOURCE=conversation**:
 ```
-用户先问了认证怎么做,我介绍了 JWT,然后用户问 Cookie 行不行,
-我对比了优缺点,用户觉得移动端 Cookie 麻烦,最后我们决定用 JWT,
-有效期 15 分钟,Refresh 7 天。
-```
+## Topic
+(What this discussion was about)
 
-✅ 正确:
-```
-## 决策:认证采用 JWT + Refresh Token 双 token 方案
+## Key Conclusions
+(What was determined)
 
-- Access Token:15min,客户端内存
-- Refresh Token:7d,服务端 Redis
+## Decisions and Rationale
 
-排除 Session 方案的原因:移动端 Cookie 处理复杂、跨域麻烦。
+## Action Items (if any)
 ```
 
-**反例 2:写现象 → 写根因**
+#### 5.6 Counter-Examples (avoid these failures)
 
-❌ 错误:
+**Counter-example 1: Chronological log -> Lead with conclusion**
+
+Bad:
 ```
-页面有 200ms 白屏,排查后修复了。
-```
-
-✅ 正确:
-```
-## 现象
-列表页跳详情页有 200ms 白屏。
-
-## 根因
-React Navigation v6.1.4 在 RN 0.72 上 modal presentation 性能开销大。
-
-## 修复
-改用 `presentation: 'card'`。
-
-## 如何避免
-不要全局设置 `presentation: 'modal'`,只在需要 modal 行为的页面单独设置。
+The user first asked how to do authentication, I introduced JWT, then the user asked if cookies would work,
+I compared the pros and cons, the user felt cookies were cumbersome on mobile, and finally we decided to use JWT
+with a 15-minute expiry and a 7-day refresh token.
 ```
 
-**反例 3:编造 → 标注**
+Good:
+```
+## Decision: Authentication uses JWT + Refresh Token dual-token scheme
 
-❌ 错误:
-```
-这个方案性能提升 50%。
-```
+- Access Token: 15min, held in client memory
+- Refresh Token: 7d, stored server-side in Redis
 
-✅ 正确:
-```
-这个方案预期性能更好(未实测,待压测验证)。
+Session-based approach was rejected because cookie handling on mobile is complex and cross-origin flows are problematic.
 ```
 
-**反例 4:重复已有 → 增量引用**
+**Counter-example 2: Writing symptoms -> Writing root cause**
 
-❌ 错误(压缩文档已详述 V1 架构):
+Bad:
 ```
-V1 架构包含预处理、解说、TTS、渲染四个阶段,预处理负责...
-```
-
-✅ 正确:
-```
-本次记录 V2 相对 V1 的差异:
-- 新增:特效文字管线
-- 移除:V1 的双轨编码
-
-详见压缩文档了解 V1 完整架构。
+There was a 200ms white flash on the page. After investigation, we fixed it.
 ```
 
-#### 5.7 自检清单(写入文件前必须过一遍)
+Good:
+```
+## Symptom
+List page to detail page transition shows a 200ms white flash.
 
-完成 RAW_CONTENT → HTML 转换后,**Claude 自己 check 以下 7 项**。任意一条不满足,修订后再写入:
+## Root Cause
+React Navigation v6.1.4 on RN 0.72 has high performance overhead for modal presentation.
 
-- [ ] **结论先行**:每段第一句是结论,不是过程?
-- [ ] **无流水账**:清除了"我们先讨论了...然后..."这种叙事?
-- [ ] **硬信息完整**:所有版本号、路径、命令、配置值原样保留?
-- [ ] **时效标注**:临时/待确认/已弃用的内容有相应标记?
-- [ ] **无重复**:没有重复压缩文档或其他活跃文档已有的内容?
-- [ ] **无编造**:没有为了权威而编造的数字/事实?模糊的标了 [待确认]?
-- [ ] **长度合理**:在 800-2000 字范围(超长已提示用户拆分)?
+## Fix
+Switched to `presentation: 'card'`.
 
-#### 5.8 渲染 HTML 模板
+## Prevention
+Do not set `presentation: 'modal'` globally. Only apply it to individual screens that require modal behavior.
+```
 
-通过自检后,把内容套到模板:
+**Counter-example 3: Fabrication -> Annotation**
 
-- 模板文件:`templates/doc-template.html.tpl`
-- 章节结构:标题、元数据块、内容章节、页脚
-- markdown 风格内容(列表、代码块、表格)转为合适的 HTML
-- 模板已内置 CSS,无需重复定义
+Bad:
+```
+This approach delivers a 50% performance improvement.
+```
 
-**模板占位符替换**:
-- `{{DOC_ID}}` → DOC_ID
-- `{{TITLE}}` → TITLE
-- `{{TAGS}}` → TAGS 拼接为字符串
-- `{{CREATED}}` → 今天(YYYY-MM-DD)
-- `{{CREATED_BY}}` → USER.id
-- `{{OWNER}}` → USER.id
-- `{{OWNER_NAME}}` → USER.name
-- `{{SOURCE}}` → SOURCE
-- `{{CONTENT}}` → 通过 5.1-5.7 流程生成的结构化 HTML
+Good:
+```
+This approach is expected to perform better (not yet benchmarked; load testing pending).
+```
 
-**HTML 注释中的元数据头**(模板已包含):
+**Counter-example 4: Duplicating existing content -> Incremental reference**
+
+Bad (assuming compressed doc already covers V1 architecture in detail):
+```
+V1 architecture consists of four stages: preprocessing, narration, TTS, and rendering. Preprocessing is responsible for...
+```
+
+Good:
+```
+This entry records the differences between V2 and V1:
+- Added: text effects pipeline
+- Removed: V1's dual-track encoding
+
+See the compressed document for the complete V1 architecture.
+```
+
+#### 5.7 Self-Check Checklist (must pass before writing the file)
+
+After completing the RAW_CONTENT -> HTML conversion, **Claude must verify all 7 items below**. If any item fails, revise before writing:
+
+- [ ] **Lead with conclusions**: does every paragraph's first sentence state the takeaway, not the process?
+- [ ] **No chronological logs**: have all "we first discussed... then..." narrative passages been removed?
+- [ ] **Hard information intact**: are all version numbers, paths, commands, and config values preserved verbatim?
+- [ ] **Temporal annotations applied**: do temporary/unconfirmed/deprecated items carry the appropriate tags?
+- [ ] **No duplication**: does the document avoid repeating content already in compressed docs or other active docs?
+- [ ] **No fabrication**: are there no invented numbers or facts? Are uncertain items tagged `[unconfirmed]`?
+- [ ] **Reasonable length**: is the document within the 800-2000 word range (or has the user been prompted if it exceeds this)?
+
+#### 5.8 Render HTML Template
+
+After passing self-check, wrap the content in the template:
+
+- Template file: `templates/doc-template.html.tpl`
+- Section layout: title, metadata block, content sections, footer
+- Convert markdown-style content (lists, code blocks, tables) to appropriate HTML
+- The template includes built-in CSS; do not redefine styles
+
+**Template placeholder substitutions**:
+- `{{DOC_ID}}` -> DOC_ID
+- `{{TITLE}}` -> TITLE
+- `{{TAGS}}` -> TAGS joined as a string
+- `{{CREATED}}` -> today's date (YYYY-MM-DD)
+- `{{CREATED_BY}}` -> USER.id
+- `{{OWNER}}` -> USER.id
+- `{{OWNER_NAME}}` -> USER.name
+- `{{SOURCE}}` -> SOURCE
+- `{{CONTENT}}` -> structured HTML generated through steps 5.1-5.7
+
+**Metadata header in HTML comment** (already in the template):
 ```html
-<!-- aim:doc_id=aim-20260621-a3b2f1 title=认证模块设计 tags=auth,security created=2026-06-21 created_by=u-a3b2f1c9 owner=u-a3b2f1c9 status=active source=对话 -->
+<!-- aim:doc_id=aim-20260621-a3b2f1 title=Auth Module Design tags=auth,security created=2026-06-21 created_by=u-a3b2f1c9 owner=u-a3b2f1c9 status=active source=conversation -->
 ```
 
-### 步骤 6:写入文件
+### Step 6: Write File
 
-确定写入路径:
-- 集中式模式:`<ROOT>/<SUBDIR>/<FILENAME>`
-- 分散式模式:`<ROOT>/.ai-memory/<FILENAME>`
+Determine the write path:
+- Centralized mode: `<ROOT>/<SUBDIR>/<FILENAME>`
+- Distributed mode: `<ROOT>/.ai-memory/<FILENAME>`
 
-将 HTML 内容写入文件。
+Write the HTML content to the file.
 
-### 步骤 7:更新 INDEX.yaml
+### Step 7: Update INDEX.yaml
 
-追加到 `active` 列表:
+Append to the `active` list:
 ```yaml
 - doc_id: "aim-20260621-a3b2f1"
-  title: "认证模块设计"
+  title: "Auth Module Design"
   file: "2026-06-21-auth-module-design.html"
   owner: "u-a3b2f1c9"
-  owner_name: "朱陶锋"
+  owner_name: "Zhu Taofeng"
   created: "2026-06-21"
   created_by: "u-a3b2f1c9"
   updated: "2026-06-21"
   last_modified_by: "u-a3b2f1c9"
   version: 1
   status: "active"
-  source: "对话"
+  source: "conversation"
   tags: [auth, security]
   permission: "private"
   tokens: <estimated>
   contributors:
-    - { user: "u-a3b2f1c9", name: "朱陶锋", last: "2026-06-21" }
+    - { user: "u-a3b2f1c9", name: "Zhu Taofeng", last: "2026-06-21" }
 ```
 
-将 INDEX.yaml 顶层的 `updated` 字段更新为今天。
+Update the top-level `updated` field in INDEX.yaml to today's date.
 
-### 步骤 8:估算 tokens
+### Step 8: Estimate Tokens
 
-为新文档估算 tokens(粗略:中文约 1 字符 = 1 token,英文约 4 字符 = 1 token,HTML 标签约 50% 开销)。
+Estimate tokens for the new document (rough heuristic: Chinese ~1 char = 1 token, English ~4 chars = 1 token, HTML tags add ~50% overhead).
 
-写入该 active 条目的 `tokens` 字段。
+Write the estimated value into the active entry's `tokens` field.
 
-### 步骤 9:Git 提交(可选)
+### Step 9: Git Commit (Optional)
 
-检查项目是否在 git 仓库中。
+Check whether the project is inside a git repository.
 
-**如果在 git 中**:
+**If in a git repo**:
 - `git add <FILENAME> INDEX.yaml`
-- `git commit -m "[aim-add] <PROJECT_NAME> - 新建 <FILENAME> (doc:<DOC_ID>)"`
+- `git commit -m "[aim-add] <PROJECT_NAME> - created <FILENAME> (doc:<DOC_ID>)"`
 
-**如果不在 git 中**:跳过,只提示用户 `未纳入 Git,文档已保存但未版本管理`。
+**If not in a git repo**: skip and notify the user `Not tracked by Git. Document saved but not version-controlled.`
 
-### 步骤 10:输出结果
+### Step 10: Output Result
 
 ```
-✅ 文档已添加
+Document added successfully
 
-📋 文档信息
-   标题: 认证模块设计
+Document info
+   Title: Auth Module Design
    doc_id: aim-20260621-a3b2f1
-   标签: auth, security
-   来源: 对话
+   Tags: auth, security
+   Source: conversation
 
-📁 文件位置
+File location
    /Users/zhutaofeng/Desktop/persistent-document/bauto-video/2026-06-21-auth-module-design.html
 
-📊 项目状态
-   活跃文档: 6 篇(累计 8,400 tokens)
-   压缩文档: 1 篇(12,500 tokens)
-   💡 提示: 活跃文档已 6 篇,建议运行 /aim-compress 整理
+Project status
+   Active documents: 6 (total ~8,400 tokens)
+   Compressed documents: 1 (~12,500 tokens)
+   Note: 6 active documents -- consider running /aim-compress to consolidate
 
-📝 下一步
-   - 继续添加: /aim-add
-   - 查看状态: /aim-status
-   - 压缩归档: /aim-compress
+Next steps
+   - Add another: /aim-add
+   - View status: /aim-status
+   - Compress and archive: /aim-compress
 ```
 
-**压缩建议阈值**:
-- 活跃 3+ 篇 → 温和提示
-- 活跃 5+ 篇 → 强烈建议
-- 活跃 8+ 篇 → 警告(膨胀风险)
+**Compression suggestion thresholds**:
+- 3+ active docs -> gentle nudge
+- 5+ active docs -> strong recommendation
+- 8+ active docs -> warning (bloat risk)
 
-## 边界情况
+## Edge Cases
 
-### 情况 A:项目未初始化
-- 通过 INDEX.yaml 缺失检测
-- 停止:`项目未初始化,请先运行 /aim-init`
+### Case A: Project Not Initialized
+- Detected by missing INDEX.yaml
+- Stop: `Project not initialized. Please run /aim-init first.`
 
-### 情况 B:身份缺失或无效
-- 停止:`用户身份未初始化,请重新运行 /aim-init 或 /aim-identity`
+### Case B: Identity Missing or Invalid
+- Stop: `User identity not initialized. Please re-run /aim-init or /aim-identity.`
 
-### 情况 C:文件名冲突(之前用过相同标题)
-- 写入前检测
-- 询问用户:改名或取消
+### Case C: Filename Conflict (same title used before)
+- Detect before writing
+- Ask the user: rename or cancel
 
-### 情况 D:内容为空
-- 如果 RAW_CONTENT 为空或空白:`内容为空,操作取消`
+### Case D: Empty Content
+- If RAW_CONTENT is empty or whitespace: `Content is empty. Operation cancelled.`
 
-### 情况 E:内容过大
-- 如果单篇文档估算 > 5000 tokens:
-  - 提示用户:`内容较长(约 X tokens),建议拆分为多篇文档。是否继续? (Y/n)`
+### Case E: Content Too Large
+- If the single document is estimated at >5000 tokens:
+  - Prompt the user: `Content is long (~X tokens). Consider splitting into multiple documents. Continue? (Y/n)`
 
-### 情况 F:INDEX.yaml 损坏
-- 尝试解析 YAML
-- 如果失败:`INDEX.yaml 损坏,请运行 /aim-rebuild 修复后重试`
+### Case F: Corrupted INDEX.yaml
+- Attempt to parse the YAML
+- If parsing fails: `INDEX.yaml is corrupted. Please run /aim-rebuild to fix and retry.`
 
-## 软沙盒行为
+## Soft Sandbox Behavior
 
-- `/aim-add` 创建的文档所有者总是当前用户(`owner = USER.id`)。
-- 无需跨用户确认(新文件永远属于自己)。
-- 文档 `permission` 默认为 `private`(只有所有者可免确认修改)。
+- Documents created by `/aim-add` are always owned by the current user (`owner = USER.id`).
+- No cross-user confirmation needed (new files always belong to the creator).
+- Document `permission` defaults to `private` (only the owner may modify without confirmation).
 
-## 输出风格
+## Output Style
 
-- 用户可见信息用中文
-- 显示完整文件路径
-- 一致地使用 emoji(✅ 📋 📁 📊 💡 📝)
-- 输出简洁但信息充足
+- Use English throughout for user-facing output. Code, file paths, and technical content also in English.
+- Display full file paths
+- Use consistent emoji (checkmark, clipboard, folder, chart, lightbulb, pencil)
+- Keep output concise but sufficiently informative
 
-## 参考
+## References
 
-- 模板:`templates/doc-template.html.tpl`
-- 概念:`reference/document-lifecycle.md`
-- 配套命令:`/aim-append`、`/aim-edit`
+- Template: `templates/doc-template.html.tpl`
+- Concepts: `reference/document-lifecycle.md`
+- Related commands: `/aim-append`, `/aim-edit`

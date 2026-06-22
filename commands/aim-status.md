@@ -1,248 +1,248 @@
 ---
 name: aim-status
-description: 显示项目记忆状态。展示文档数量、token 估算、Git 漂移警告和压缩建议。只读,绝不修改任何内容。
+description: Show project memory status. Displays document counts, token estimates, git drift warnings, and compression advice. Read-only — never modifies anything.
 ---
 
-# /aim-status — 显示项目状态
+# /aim-status — Show Project Status
 
-## 用途
+## Purpose
 
-展示当前项目记忆状态的快照:文档清单、token 使用量、贡献者活动、Git 漂移以及健康警告。**只读** — 从不写入,从不提交。
+Display a snapshot of the current project's memory state: document inventory, token usage, contributor activity, git drift, and health warnings. **Read-only** — never writes, never commits.
 
-适用场景:
-- `/aim-init` 之后验证设置是否生效
-- 周期性监控记忆增长
-- `/aim-compress` 之前判断是否需要压缩
-- 感觉有异常时(文档缺失、INDEX 损坏、同步问题)
+Typical use cases:
+- Verifying setup after `/aim-init`
+- Periodically monitoring memory growth
+- Judging whether compression is needed before `/aim-compress`
+- Diagnosing anomalies (missing documents, corrupted INDEX, sync issues)
 
-## 用法
+## Usage
 
 ```
 /aim-status
 ```
 
-无参数。始终作用于当前项目(从 cwd 解析)。
+No arguments. Always operates on the current project (resolved from cwd).
 
-## 前置条件
+## Prerequisites
 
-- 项目必须已初始化。检测方式:
-  - 分散式模式:`<cwd>/.ai-memory/INDEX.yaml` 存在
-  - 集中式模式:扫描已知根目录,查找 INDEX.yaml 中 `root` 匹配 cwd 或 cwd 相对路径的子目录
-- 如果未初始化:停止并提示 `项目未初始化,请先运行 /aim-init`
+- The project must already be initialized. Detection:
+  - Distributed mode: `<cwd>/.ai-memory/INDEX.yaml` exists
+  - Centralized mode: scan known root directories for an INDEX.yaml whose `root` matches cwd or a subdirectory relative to cwd
+- If not initialized: stop and prompt `Project not initialized. Run /aim-init first.`
 
-## 流程
+## Workflow
 
-### 步骤 1:解析当前项目
+### Step 1: Resolve the current project
 
-解析逻辑同 `/aim-add` 步骤 1:
+Same resolution logic as `/aim-add` Step 1:
 
-1. 检查 cwd。
-2. 查找项目:
-   - **分散式**:`<cwd>/.ai-memory/INDEX.yaml`
-   - **集中式**:扫描 `~/Desktop/persistent-document/` 和 `~/.claude/ai-memory/projects.json` 中的根目录,查找含 INDEX.yaml 的子目录
-3. 如果多个匹配:询问用户选哪个。
-4. 如果无匹配:报错并停止。
+1. Check cwd.
+2. Find the project:
+   - **Distributed**: `<cwd>/.ai-memory/INDEX.yaml`
+   - **Centralized**: scan `~/Desktop/persistent-document/` and root directories listed in `~/.claude/ai-memory/projects.json` for subdirectories containing INDEX.yaml
+3. If multiple matches: ask the user which one.
+4. If no match: error and stop.
 
-读取 INDEX.yaml。如果解析失败,提示错误(见边界情况 A)。
+Read INDEX.yaml. If parsing fails, display the error (see Edge Case A).
 
-### 步骤 2:解析用户身份
+### Step 2: Resolve user identity
 
-读取 `~/.claude/ai-memory/identity.json`。
+Read `~/.claude/ai-memory/identity.json`.
 
-- 如果存在:记录当前用户(用于输出中的"你的文档"分组)。
-- 如果缺失:继续,但提示 `用户身份未初始化,无法区分个人/他人文档`。
+- If it exists: record the current user (used to group "your documents" in output).
+- If missing: continue, but warn `User identity not initialized — cannot distinguish personal vs. others' documents.`
 
-### 步骤 3:清点活跃文档
+### Step 3: Inventory active documents
 
-对 `INDEX.yaml` 中 `active` 列表的每个条目:
+For each entry in the `active` list of INDEX.yaml:
 
-1. 校验 `<root>/<file>` 文件存在。
-2. 从文件读取元数据头(`<!-- aim:doc_id=... -->`)。
-3. 交叉校验 INDEX.yaml 字段与文件元数据:
-   - `doc_id`、`title`、`owner`、`status`、`updated`、`version`
-4. 统计 tokens(从文件大小估算:`bytes / 3.5` 作为粗略启发式,并按中英文比例细化)。
-5. 按维度分桶:
-   - 所有者(自己 vs 他人)
-   - 来源类型(对话/踩坑/外部/决策)
-   - 标签
-6. 记录异常:
-   - 磁盘上文件缺失
-   - INDEX 有条目但文件元数据不匹配
-   - 文件存在但 INDEX 无条目(孤儿)
+1. Verify that `<root>/<file>` exists on disk.
+2. Read the metadata header from the file (`<!-- aim:doc_id=... -->`).
+3. Cross-check INDEX.yaml fields against file metadata:
+   - `doc_id`, `title`, `owner`, `status`, `updated`, `version`
+4. Estimate tokens (from file size: `bytes / 3.5` as a rough heuristic, refined by Chinese/English content ratio).
+5. Bucket by dimension:
+   - Owner (self vs. others)
+   - Source type (conversation / pitfall / external / decision)
+   - Tags
+6. Record anomalies:
+   - File missing on disk
+   - INDEX has entry but file metadata does not match
+   - File exists but INDEX has no entry (orphan)
 
-### 步骤 4:清点压缩文档
+### Step 4: Inventory compressed documents
 
-对 `INDEX.yaml` 的 `compressed`:
+For `compressed` in INDEX.yaml:
 
-1. 校验压缩文件存在。
-2. 从元数据头提取 `version`、`created_by`、`contributors`。
-3. 统计 tokens。
-4. 检测是否有陈旧的活跃文档仍引用已压缩的源(罕见,可能在 rebuild 顺序错乱时出现)。
+1. Verify the compressed file exists.
+2. Extract `version`, `created_by`, `contributors` from metadata header.
+3. Estimate tokens.
+4. Detect any stale active documents that still reference a compressed source (rare, may occur if rebuild order is wrong).
 
-### 步骤 5:清点快照
+### Step 5: Inventory snapshots
 
-扫描 `<root>/snapshots/` 下的日期子目录:
+Scan date subdirectories under `<root>/snapshots/`:
 
-1. 列出所有 `snapshots/YYYY-MM-DD/` 目录。
-2. 对每个目录统计里面的 HTML 文件数量。
-3. 与 `INDEX.yaml` 的 `snapshots` 列表交叉校验。
-4. 标记孤儿快照目录(在磁盘上但未记录在 INDEX)。
+1. List all `snapshots/YYYY-MM-DD/` directories.
+2. For each directory, count the HTML files inside.
+3. Cross-check against the `snapshots` list in INDEX.yaml.
+4. Flag orphan snapshot directories (on disk but not recorded in INDEX).
 
-### 步骤 6:检查 Git 漂移
+### Step 6: Check git drift
 
-仅当 `<root>`(或分散式项目根)在 git 仓库中时执行:
+Only execute when `<root>` (or distributed project root) is inside a git repo:
 
-1. 执行 `git status --porcelain` — 统计记忆目录中已修改/未追踪文件。
-2. 执行 `git fetch --dry-run`(离线则跳过)— 检测本地是否落后于 `origin/<branch>`。
-3. 执行 `git log origin/<branch>..HEAD --oneline` — 统计领先提交数。
-4. 执行 `git log HEAD..origin/<branch> --oneline` — 统计落后提交数。
+1. Run `git status --porcelain` — count modified/untracked files in the memory directory.
+2. Run `git fetch --dry-run` (skip if offline) — detect whether local is behind `origin/<branch>`.
+3. Run `git log origin/<branch>..HEAD --oneline` — count ahead commits.
+4. Run `git log HEAD..origin/<branch> --oneline` — count behind commits.
 
-不做缓存 — 每次都 fetch,使报告反映当前远端状态。
+No caching — always fetch so the report reflects current remote state.
 
-### 步骤 7:计算健康指标
+### Step 7: Calculate health metrics
 
-计算并格式化:
+Calculate and format:
 
-- **压缩紧迫度**:
-  - 活跃 < 3:`良好`
-  - 3-4:`温和提示,可考虑压缩`
-  - 5-7:`强烈建议压缩`
-  - 8+:`⚠️ 膨胀风险,建议立即压缩`
-- **Token 预算**(粗略上下文窗口估算):
-  - 目标:活跃总量保持在 ~30,000 tokens 以下,便于顺畅阅读
-  - 超过 50,000 时警告
-- **最大单文档**(超过 5000 tokens 时标记)
-- **陈旧文档**:任何 `active` 文档超过 30 天未更新(按 `updated` 字段)
-- **跨用户待办**:`contributors` 中存在非所有者用户(表示协作)
+- **Compression urgency**:
+  - Active < 3: `Good`
+  - 3–4: `Consider compressing`
+  - 5–7: `Compression recommended`
+  - 8+: `⚠️ Bloat risk — compress immediately`
+- **Token budget** (rough context-window estimate):
+  - Target: keep active total below ~30,000 tokens for smooth reading
+  - Warn when exceeding 50,000
+- **Largest single document** (flag if over 5,000 tokens)
+- **Stale documents**: any `active` document not updated in 30+ days (by `updated` field)
+- **Cross-user todo**: non-owner users present in `contributors` (indicates collaboration)
 
-### 步骤 8:输出报告
+### Step 8: Output the report
 
-按下方"输出风格"章节格式化报告。用 emoji 标题分组。保持简洁 — 最好一屏可显示。
+Format the report as shown in the "Output Style" section below. Group with emoji headings. Keep it concise — ideally fits on one screen.
 
-如果请求 verbose 模式(`/aim-status --detail`),额外打印每篇文档的表格。
+If verbose mode is requested (`/aim-status --detail`), also print a per-document table.
 
-## 边界情况
+## Edge Cases
 
-### 情况 A:INDEX.yaml 损坏或无法解析
+### Case A: INDEX.yaml is corrupted or unparsable
 
-- 显示解析错误的行。
-- 建议:`INDEX.yaml 解析失败,请运行 /aim-rebuild 修复`
-- 不要继续清点 — 否则会产生误导性数字。
+- Display the line where parsing failed.
+- Suggest: `INDEX.yaml parse failed. Run /aim-rebuild to fix.`
+- Do not continue with inventory — numbers would be misleading.
 
-### 情况 B:项目活跃文档为零(刚初始化)
+### Case B: Project has zero active documents (freshly initialized)
 
-- 显示空状态:
+- Show empty state:
   ```
-  活跃文档: 0 篇
-  还没有文档,运行 /aim-add 添加第一篇。
+  Active documents: 0
+  No documents yet. Run /aim-add to add your first one.
   ```
 
-### 情况 C:文件在磁盘上但 INDEX 没记录(孤儿)
+### Case C: File exists on disk but not in INDEX (orphan)
 
-- 列入"异常"区:`文件 xxx.html 存在但 INDEX.yaml 未记录`
-- 建议 `/aim-rebuild` 进行对齐。
+- List under "Anomalies": `File xxx.html exists but is not recorded in INDEX.yaml`
+- Suggest running `/aim-rebuild` to align.
 
-### 情况 D:INDEX 有条目但文件缺失
+### Case D: INDEX has entry but file is missing
 
-- 列入"异常":`INDEX 记录 xxx.html 但文件不存在`
-- 建议从 git 恢复或删除该 INDEX 条目。
+- List under "Anomalies": `INDEX records xxx.html but file does not exist`
+- Suggest restoring from git or removing the INDEX entry.
 
-### 情况 E:Git 仓库存在但未配置 remote
+### Case E: Git repo exists but no remote is configured
 
-- 跳过漂移检查,提示:`Git 已启用但无 remote,无法检查落后状态`
+- Skip drift check, note: `Git is enabled but has no remote — cannot check behind status.`
 
-### 情况 F:Git fetch 失败(离线 / 鉴权)
+### Case F: Git fetch fails (offline / auth)
 
-- 跳过远端检查,提示:`无法访问 remote (离线?),仅显示本地状态`
+- Skip remote check, note: `Cannot reach remote (offline?). Showing local state only.`
 
-### 情况 G:分散式模式但 cwd 在项目之外
+### Case G: Distributed mode but cwd is outside any project
 
-- 步骤 1 的解析逻辑应能捕获。
-- 如意外到达此处:报错 `当前目录不在任何 ai-memory 项目中`
+- Step 1 resolution logic should catch this.
+- If reached unexpectedly: error `Current directory is not inside any ai-memory project.`
 
-### 情况 H:权限混合(部分文档 private,部分 shared)
+### Case H: Mixed permissions (some documents private, some shared)
 
-- 在文档列表中,每行旁边显示 `permission` 徽章。
-- 无特殊动作,只是可见。
+- In the document list, show a `permission` badge next to each line.
+- No special action; informational only.
 
-## 输出风格
+## Output Style
 
-### 默认输出
-
-```
-📊 ai-memory 项目状态
-
-📋 项目
-   名称: 视频项目
-   模式: 集中式
-   位置: /Users/zhutaofeng/Desktop/persistent-document/bauto-video
-   初始化: 2026-06-15 (6 天前)
-
-👤 当前用户
-   朱陶锋 (u-a3b2f1c9)
-
-📑 文档概览
-   活跃: 6 篇 (8,400 tokens)
-   压缩: 1 篇 (12,500 tokens,1 次合并)
-   快照: 2 个目录 (累计 14 篇归档)
-
-📈 活跃文档分布
-   按来源:
-     - 对话: 3 篇
-     - 踩坑: 2 篇
-     - 决策: 1 篇
-   按作者:
-     - 朱陶锋: 5 篇
-     - 张三: 1 篇 (协作)
-
-⚠️ 健康提示
-   💡 活跃文档已 6 篇,建议运行 /aim-compress 整理
-   ⚠️ 文档「认证模块重构」达 5,200 tokens,可考虑拆分
-   📅 文档「早期 API 设计」30+ 天未更新
-
-🔄 Git 状态
-   分支: main
-   未提交: 2 个文件 (INDEX.yaml, 2026-06-21-auth.html)
-   与远程: 同步
-
-📝 下一步建议
-   - /aim-compress     压缩活跃文档
-   - git add .         提交未保存变更
-   - /aim-verify       完整一致性检查
-```
-
-### Verbose 输出(`--detail`)
-
-在摘要后追加每篇文档的表格:
+### Default Output
 
 ```
-📑 活跃文档明细
-| doc_id            | 标题             | 作者   | tokens | 更新        |
-|-------------------|------------------|--------|--------|-------------|
-| aim-20260621-a3b2 | 认证模块设计     | 朱陶锋 | 1,200  | 2026-06-21  |
-| aim-20260620-b1c2 | 路由优化踩坑     | 朱陶锋 | 800    | 2026-06-20  |
-| aim-20260618-c3d4 | 第三方登录方案   | 张三   | 1,500  | 2026-06-20  |
-| ...               |                  |        |        |             |
+📊 ai-memory Project Status
+
+📋 Project
+   Name: Video Project
+   Mode: Centralized
+   Path: /Users/zhutaofeng/Desktop/persistent-document/bauto-video
+   Initialized: 2026-06-15 (6 days ago)
+
+👤 Current User
+   Zhu Taofeng (u-a3b2f1c9)
+
+📑 Documents
+   Active: 6 (8,400 tokens)
+   Compressed: 1 (12,500 tokens, 1 merge)
+   Snapshots: 2 directories (14 archived)
+
+📈 Active Distribution
+   By source:
+     - Conversation: 3
+     - Pitfall: 2
+     - Decision: 1
+   By author:
+     - Zhu Taofeng: 5
+     - Zhang San: 1 (collaboration)
+
+⚠️ Health Notes
+   💡 6 active documents — consider running /aim-compress
+   ⚠️ "Auth module refactor" is 5,200 tokens — consider splitting
+   📅 "Early API design" not updated in 30+ days
+
+🔄 Git Status
+   Branch: main
+   Uncommitted: 2 files (INDEX.yaml, 2026-06-21-auth.html)
+   vs. remote: up to date
+
+📝 Next Steps
+   - /aim-compress     Compress active documents
+   - git add .         Commit unsaved changes
+   - /aim-verify       Full consistency check
 ```
 
-### 格式规则
+### Verbose Output (`--detail`)
 
-- 所有标签用中文。
-- 数字带千分位分隔符(`8,400`)。
-- 日期格式 `YYYY-MM-DD`。
-- 相对时间用括号(`6 天前`、`2 小时前`)。
-- 超过 80 字符的路径换行(续行缩进 3 空格)。
-- emoji 一致使用:📊 📋 👤 📑 📈 ⚠️ 🔄 📝 💡 🚫
-- 不要尾部总结段 — 保持易于扫描。
+Append a per-document table after the summary:
 
-## 软沙盒行为
+```
+📑 Active Document Details
+| doc_id            | Title             | Author     | tokens | Updated     |
+|-------------------|-------------------|------------|--------|-------------|
+| aim-20260621-a3b2 | Auth module design | Zhu Taofeng | 1,200  | 2026-06-21  |
+| aim-20260620-b1c2 | Route optimization pitfall | Zhu Taofeng | 800 | 2026-06-20 |
+| aim-20260618-c3d4 | Third-party login plan | Zhang San | 1,500 | 2026-06-20 |
+| ...               |                   |            |        |             |
+```
 
-- `/aim-status` 是**公共命令** — 无沙盒限制。
-- 显示所有文档,不区分所有者。
-- 贡献者姓名以纯文本显示(无超出 INDEX.yaml 已记录的 PII)。
+### Formatting Rules
 
-## 参考
+- All labels in English.
+- Numbers use thousands separators (`8,400`).
+- Dates in `YYYY-MM-DD` format.
+- Relative time in parentheses (`6 days ago`, `2 hours ago`).
+- Paths over 80 characters wrap to a new line (continuation indented 3 spaces).
+- Consistent emoji usage: 📊 📋 👤 📑 📈 ⚠️ 🔄 📝 💡 🚫
+- No trailing summary paragraph — keep it scannable.
 
-- 配套命令:`/aim-add`、`/aim-compress`、`/aim-rebuild`、`/aim-verify`
-- 概念:`reference/document-lifecycle.md`
-- Token 估算:中文 1 字符 ≈ 1 token,英文 4 字符 ≈ 1 token,HTML 开销 ~50%
+## Soft Sandbox Behavior
+
+- `/aim-status` is a **public command** — no sandbox restrictions.
+- Displays all documents regardless of owner.
+- Contributor names shown as plain text (no PII beyond what is already recorded in INDEX.yaml).
+
+## References
+
+- Companion commands: `/aim-add`, `/aim-compress`, `/aim-rebuild`, `/aim-verify`
+- Concept: `reference/document-lifecycle.md`
+- Token estimation: Chinese ~1 char/token, English ~4 chars/token, HTML overhead ~50%

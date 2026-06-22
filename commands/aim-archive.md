@@ -1,86 +1,86 @@
 ---
 name: aim-archive
-description: 把文档从活跃列表移到 snapshots 目录。用于不再当前但应保留的文档。可逆操作。
+description: Move a document from the active list to the snapshots directory. For documents that are no longer current but should be preserved. Reversible operation.
 ---
 
-# /aim-archive — 归档文档
+# /aim-archive — Archive a Document
 
-## 用途
+## Purpose
 
-把活跃文档移到 snapshots 目录。该文档不再出现在新会话的"活跃阅读集"中,但保留用于历史参考和 `/aim-expand` 检索。
+Move an active document into the snapshots directory. The document will no longer appear in new sessions' "active reading set," but is preserved for historical reference and `/aim-expand` retrieval.
 
-与 `/aim-compress` 的区别:
-- `/aim-compress`:把多篇文档合并为一个压缩文件,然后对原件做快照。
-- `/aim-archive`:对单篇文档做快照但不压缩(它不会贡献到压缩文件)。
+How it differs from `/aim-compress`:
+- `/aim-compress`: Merges multiple documents into one compressed file, then snapshots the originals.
+- `/aim-archive`: Snapshots a single document without compression (it will not contribute to any compressed file).
 
-适用场景:
-- 文档过时但不想丢失
-- 文档代表一种已弃用的方案,想软删除
-- 准备压缩但想把某些文档排除在合并之外
+Use cases:
+- A document is outdated but you don't want to lose it
+- A document represents a deprecated approach and you want to soft-delete it
+- You're preparing to compress but want to exclude certain documents from the merge
 
-**可逆**:`/aim-expand` 可读取归档文档;手动把文件移回 + 重建 INDEX 可恢复活跃状态。
+**Reversible**: `/aim-expand` can read archived documents; manually moving the file back + rebuilding the INDEX restores active status.
 
-## 用法
+## Usage
 
 ```
 /aim-archive <doc_id|filename> [--reason <text>]
 ```
 
-- `doc_id` 或 filename:目标文档。
-- `--reason <text>`:可选,归档原因(记录到 INDEX)。
+- `doc_id` or filename: Target document.
+- `--reason <text>`: Optional. Reason for archiving (recorded in INDEX).
 
-## 前置条件
+## Prerequisites
 
-- 项目已初始化。
-- 目标文档存在于 `active` 列表。
-- 用户身份已建立。
+- Project is initialized.
+- Target document exists in the `active` list.
+- User identity is established.
 
-## 流程
+## Workflow
 
-### 步骤 1-4:解析项目、身份、文档、沙盒检查
+### Steps 1-4: Parse project, identity, document, sandbox check
 
-同 `/aim-append` 步骤 1-4。
+Same as `/aim-append` steps 1-4.
 
-对 `/aim-archive`,跨用户确认适用(归档他人文档会影响项目状态)。
+For `/aim-archive`, cross-user confirmation applies (archiving another user's document affects project state).
 
-### 步骤 5:确认意图
+### Step 5: Confirm intent
 
-归档前总是确认:
+Always confirm before archiving:
 
 ```
-⚠️ 准备归档文档
+About to archive document
 
-文档: 认证模块设计 (aim-20260621-a3b2f1)
-作者: 朱陶锋
-创建: 2026-06-21
-版本: 2
+Document: Authentication Module Design (aim-20260621-a3b2f1)
+Author: Zhu Taofeng
+Created: 2026-06-21
+Version: 2
 
-归档后:
-  - 文件移至 snapshots/2026-06-21/
-  - 不再出现在 /aim-status 活跃列表
-  - 仍可通过 /aim-expand 检索
-  - 不会纳入下次 /aim-compress 的源文档
+After archiving:
+  - File will be moved to snapshots/2026-06-21/
+  - Will no longer appear in /aim-status active list
+  - Still retrievable via /aim-expand
+  - Will NOT be included as a source in the next /aim-compress
 
-确认归档? (Y/n)
+Confirm archive? (Y/n)
 ```
 
-### 步骤 6:确定快照位置
+### Step 6: Determine snapshot location
 
-快照路径:`<root>/snapshots/YYYY-MM-DD/<filename>`
+Snapshot path: `<root>/snapshots/YYYY-MM-DD/<filename>`
 
-如文件已存在(同一天同名归档):追加 `-N` 后缀。
+If a file with the same name already exists (same day, same name archived): append a `-N` suffix.
 
-### 步骤 7:移动文件
+### Step 7: Move the file
 
 ```
 mv <root>/<filename> → <root>/snapshots/YYYY-MM-DD/<filename>
 ```
 
-使用 `mv`(不是复制)— 文档离开活跃位置。
+Use `mv` (not copy) — the document leaves the active area.
 
-### 步骤 8:更新文档元数据
+### Step 8: Update document metadata
 
-读取移动后的文件。更新其元数据头:
+Read the moved file. Update its metadata header:
 
 ```
 status=archived
@@ -89,12 +89,12 @@ archived_by=u-a3b2f1c9
 archive_reason=<reason text or "manual">
 ```
 
-写回。
+Write back.
 
-### 步骤 9:更新 INDEX.yaml
+### Step 9: Update INDEX.yaml
 
-1. 从 `active` 列表移除条目。
-2. 加入 `snapshots` 列表:
+1. Remove the entry from the `active` list.
+2. Add to the `snapshots` list:
 
 ```yaml
 - date: "2026-06-21"
@@ -105,79 +105,79 @@ archive_reason=<reason text or "manual">
   archived_by: "u-a3b2f1c9"
 ```
 
-3. 更新顶层 `updated` 为今天。
+3. Update the top-level `updated` to today.
 
-### 步骤 10:Git 提交(可选)
+### Step 10: Git commit (optional)
 
 ```
 git add snapshots/ INDEX.yaml
-git rm <old active path>  # 文件已移走
-git commit -m "[aim-archive] <PROJECT_NAME> - 归档 <filename> [cross-user:from <name>] (doc:<DOC_ID>)"
+git rm <old active path>  # file has been moved away
+git commit -m "[aim-archive] <PROJECT_NAME> - archived <filename> [cross-user:from <name>] (doc:<DOC_ID>)"
 ```
 
-### 步骤 11:输出结果
+### Step 11: Output result
 
 ```
-✅ 文档已归档
+Document archived
 
-📋 归档信息
-   文档: 认证模块设计 (aim-20260621-a3b2f1)
-   原因: 手动归档 / <用户输入的原因>
-   操作者: 朱陶锋 (u-a3b2f1c9)
+Archive details
+   Document: Authentication Module Design (aim-20260621-a3b2f1)
+   Reason: Manual archive / <user-provided reason>
+   Operator: Zhu Taofeng (u-a3b2f1c9)
 
-📁 文件位置
-   归档至: /Users/.../snapshots/2026-06-21/2026-06-21-auth-module-design.html
-   (已从活跃区移除)
+File location
+   Archived to: /Users/.../snapshots/2026-06-21/2026-06-21-auth-module-design.html
+   (Removed from active area)
 
-📊 项目状态
-   活跃: 5 篇(原 6 篇)
-   压缩: 1 篇
-   快照: 3 个目录
+Project status
+   Active: 5 docs (was 6)
+   Compressed: 1 doc
+   Snapshots: 3 directories
 
-📝 下一步
-   - /aim-status              查看更新后状态
-   - /aim-expand <doc_id>     如需检索归档内容
-   - 手动恢复: mv 文件回根目录 + /aim-rebuild
+Next steps
+   - /aim-status              View updated status
+   - /aim-expand <doc_id>     Retrieve archived content if needed
+   - Manual restore: mv file back to root + /aim-rebuild
 ```
 
-## 边界情况
+## Edge Cases
 
-### 情况 A:归档最后一篇活跃文档
+### Case A: Archiving the last active document
 
-- 允许,但警告:`归档后项目活跃文档为 0。是否仍要继续? (Y/n)`。
+- Allowed, but warn: `After archiving, the project will have 0 active documents. Continue? (Y/n)`.
 
-### 情况 B:文档有依赖(其他文档引用它)
+### Case B: Document has dependents (other documents reference it)
 
-- 扫描其他活跃文档,查找对本 doc_id 或 title 的引用。
-- 如发现引用:警告 `以下文档引用了 [xxx]: [list]。归档后这些引用将成为死链。是否继续? (Y/n)`。
+- Scan other active documents for references to this doc_id or title.
+- If references found: warn `The following documents reference [xxx]: [list]. After archiving, these references will become dead links. Continue? (Y/n)`.
 
-### 情况 C:文档已在压缩文档归档区中被引用
+### Case C: Document is already referenced in the compressed document's archive section
 
-- 那里已经保留。归档活跃副本是安全的。
-- 提示:`该文档已存在于压缩文档归档区,本次归档的是 active 副本`。
+- It's already preserved there. Archiving the active copy is safe.
+- Note: `This document also exists in the compressed document's archive section. This archive action applies to the active copy.`
 
-### 情况 D:今天的快照目录已有很多文件
+### Case D: Today's snapshot directory already has many files
 
-- 允许,只提示:`今日快照目录已有 N 篇,建议适时 /aim-compress 整合`。
+- Allowed. Just note: `Today's snapshot directory already has N files. Consider running /aim-compress to consolidate when appropriate.`
 
-### 情况 E:提供的原因文字很长
+### Case E: Provided reason text is very long
 
-- INDEX.yaml 中截断到 200 字符。完整原因写入归档文件元数据。
+- Truncate to 200 characters in INDEX.yaml. Write the full reason into the archived file's metadata.
 
-## 输出风格
+## Output Style
 
-- 全程中文。
-- 始终显示"from → to"路径变化。
-- 项目状态中显示更新计数(前 → 后)。
-- emoji:✅ 📋 📁 📊 📝 ⚠️
+- Use English throughout.
+- Always show the "from → to" path change.
+- Show before/after counts in project status.
+- Emojis: ✅ 📋 📁 📊 📝 ⚠️
 
-## 软沙盒行为
+## Soft Sandbox Behavior
 
-- 自己的文档:一次确认即可自由归档。
-- 他人的文档:每次需跨用户确认。
-- 公共/已归档文档:不适用(已归档)。
+- Own documents: One confirmation, then free to archive.
+- Others' documents: Cross-user confirmation required every time.
+- Public/archived documents: Not applicable (already archived).
 
-## 参考
+## References
 
-- 配套命令:`/aim-expand`(反向检索)、`/aim-compress`(通过合并批量归档)
-- 概念:`reference/document-lifecycle.md`
+- Companion commands: `/aim-expand` (reverse retrieval), `/aim-compress` (batch archive via merge)
+- Concept: `reference/document-lifecycle.md`

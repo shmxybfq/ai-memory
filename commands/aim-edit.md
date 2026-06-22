@@ -1,267 +1,268 @@
 ---
 name: aim-edit
-description: 修改文档中的现有内容。不同于 /aim-append(仅追加),/aim-edit 会改动现有章节。若不是所有者会触发跨用户确认。总是通过快照备份保留原始版本。
+description: Edit existing content in a document. Unlike /aim-append (append-only), /aim-edit modifies existing sections. Triggers cross-user confirmation if not the owner. Always preserves the original via snapshot backup.
 ---
 
-# /aim-edit — 修改已有文档
+# /aim-edit — Edit Existing Document
 
-## 用途
+## Purpose
 
-修改文档中的现有内容 — 修正错误、更新过时信息、重构结构。与 `/aim-append`(仅追加)不同,`/aim-edit` 可以重写或删除现有章节。
+Modify existing content in a document — fix errors, update outdated information, restructure sections. Unlike `/aim-append` (append-only), `/aim-edit` can rewrite or delete existing sections.
 
-**安全机制**:
-1. 编辑前总是把原件备份到 `snapshots/YYYY-MM-DD/`。
-2. 非所有者需跨用户确认。
-3. 原元数据 `version` 递增;`last_modified_by` 更新。
+**Safety mechanisms**:
+1. Always backs up the original file to `snapshots/YYYY-MM-DD/` before editing.
+2. Non-owners require cross-user confirmation.
+3. Original metadata `version` is incremented; `last_modified_by` is updated.
 
-适用场景:
-- 文档信息有误
-- 决策更新,文档需要同步
-- 为了清晰而重构(不仅是添加)
+Typical use cases:
+- The document contains incorrect information
+- A decision has changed and the document needs to reflect the update
+- Restructuring for clarity (not just adding content)
 
-## 用法
+## Usage
 
 ```
 /aim-edit <doc_id|filename> [--section <heading>] [instructions]
 ```
 
-- `doc_id` 或 filename:目标文档。
-- `--section <heading>`:把编辑限定到某个章节(按标题文本)。
-- `instructions`:描述要改什么的自然语言。
+- `doc_id` or filename: the target document.
+- `--section <heading>`: limit the edit to a specific section (matched by heading text).
+- `instructions`: natural language describing what to change.
 
-如果没有 instructions:交互式提示用户。
+If no `instructions` are provided: interactively prompt the user.
 
-## 前置条件
+## Prerequisites
 
-- 项目已初始化。
-- 目标文档存在于 `active` 列表。
-- 用户身份已建立。
+- Project is initialized.
+- Target document exists in the `active` list.
+- User identity is established.
 
-## 流程
+## Workflow
 
-### 步骤 1-4:解析项目、身份、文档、沙盒检查
+### Steps 1-4: Parse project, identity, document, and sandbox check
 
-同 `/aim-append` 步骤 1-4。跨用户确认适用。
+Same as `/aim-append` steps 1-4. Cross-user confirmation applies.
 
-### 步骤 5:快照备份(始终执行)
+### Step 5: Snapshot Backup (Always Executed)
 
-编辑之前:
+Before editing:
 
-1. 创建快照目录:`<root>/snapshots/YYYY-MM-DD/`(mkdir -p)。
-2. 把当前文件**复制**(不是移动)到 `snapshots/YYYY-MM-DD/<original-filename>`。
-3. 该副本作为编辑前备份。
+1. Create snapshot directory: `<root>/snapshots/YYYY-MM-DD/` (mkdir -p).
+2. **Copy** (not move) the current file to `snapshots/YYYY-MM-DD/<original-filename>`.
+3. This copy serves as the pre-edit backup.
 
-这样活跃文件保留在原位(只是被修改),但编辑前版本以快照形式保存。
+The active file stays in place (it gets modified in-place), but the pre-edit version is preserved as a snapshot.
 
-### 步骤 6:收集编辑指令
+### Step 6: Collect Edit Instructions
 
-如果提供了 `instructions` 参数:直接使用。
+If the `instructions` argument is provided: use it directly.
 
-否则提示:
+Otherwise, prompt:
 
 ```
-请描述要做的修改(自然语言即可,如「把第三段的 JWT 实现改为使用 jose 库」):
-[等待用户输入]
+Please describe the changes you want to make (natural language is fine, e.g. "change the JWT implementation in section 3 to use the jose library"):
+[wait for user input]
 ```
 
-### 步骤 7:确定编辑范围
+### Step 7: Determine Edit Scope
 
-如果提供了 `--section`:
-- 按标题文本定位章节(大小写不敏感部分匹配)。
-- 所有修改限制在该章节范围内。
-- 如未找到章节:`未找到章节 [xxx]。文档中的章节: [list]`。
+If `--section` is provided:
+- Locate the section by heading text (case-insensitive partial match).
+- All modifications are confined to that section.
+- If section is not found: `Section [xxx] not found. Sections in document: [list]`.
 
-否则:编辑全文任意位置。
+Otherwise: edit anywhere in the full document.
 
-### 步骤 8:应用编辑(LLM 轮)
+### Step 8: Apply Edits (LLM Turn)
 
-#### 8.1 角色定位
+#### 8.1 Role Definition
 
-**你不是"重写文档的人",你是"做外科手术式修改的人"。**
+**You are not "rewriting the document." You are performing surgical edits.**
 
-读者会对比修改前后的差异,期望看到**精准的、最小化的变更**,不是"看起来更好的版本"。
+The reader will compare before and after diffs. They expect to see **precise, minimal changes** — not "a version that looks better."
 
-> **失败模式警告**:LLM 编辑文档时最常见的 5 种失败 — 顺手重构无关内容、改变原文语气/风格、把简洁改啰嗦(或相反)、删了不该删的、改了语义还以为是表述调整。
+> **Failure mode warning**: The 5 most common LLM failures when editing documents — tangential restructuring of unrelated content, altering the original tone/style, inflating concise text (or the reverse), deleting content that should be kept, and changing semantics while treating it as a mere wording adjustment.
 
-#### 8.2 必须遵守(编辑原则)
+#### 8.2 Required Principles (MUST Follow)
 
-1. **最小 diff 原则**:只改用户要求改的,不顺手优化其他部分
-2. **语义保持**:可以浓缩/重组表述,但**不能反转结论**(原文说"选 A"不能改成"选 B",除非用户明确要求)
-3. **风格保持**:不改原文的语气、人称、术语
-4. **元数据头保护**:`<!-- aim:... -->` 只有 `version` 和 `updated` 字段可变
-5. **范围隔离**:如果给了 `--section`,绝不触碰其他章节
+1. **Minimal diff principle**: Change only what the user asked to change. Do not opportunistically optimize other parts.
+2. **Semantic preservation**: You may condense or rephrase wording, but you **must not reverse conclusions** (if the original says "choose A", you cannot change it to "choose B" unless the user explicitly asks).
+3. **Style preservation**: Do not alter the original's tone, voice, terminology, or register.
+4. **Metadata header protection**: Inside `<!-- aim:... -->`, only the `version` and `updated` fields may be changed.
+5. **Scope isolation**: If `--section` was given, never touch any other section.
 
-#### 8.3 禁止行为(MUST NOT)
+#### 8.3 Prohibited Behaviors (MUST NOT)
 
-1. **禁止顺手重构**:不要"既然在改这个,顺便把那个也整理了"
-2. **禁止风格美化**:不要把列表改成表格、把短句扩成长句(除非用户明确要求)
-3. **禁止扩写**:不要"补充一些有用的上下文"
-4. **禁止删除硬信息**:版本号、路径、命令、配置值即使看起来"过时"也不要删,改为 `[deprecated]` 标注
-5. **禁止改变文档结构**:章节顺序、标题层级保持不变(除非用户明确要求重组)
-6. **禁止编造理由**:如果用户说"改成 X",不要自己补充"因为 Y"
+1. **No opportunistic restructuring**: Do not "while I'm editing this, I'll clean up that too."
+2. **No style beautification**: Do not convert lists to tables, or expand short sentences into long ones (unless the user explicitly asks).
+3. **No expansion**: Do not "add some useful context."
+4. **No deletion of hard information**: Version numbers, paths, commands, and configuration values must never be deleted even if they appear outdated — mark them with `[deprecated]` instead.
+5. **No structural changes**: Section order and heading hierarchy must remain unchanged (unless the user explicitly requests reorganization).
+6. **No fabrication of reasons**: If the user says "change it to X," do not add your own reasoning like "because Y."
 
-#### 8.4 编辑类型与对应策略
+#### 8.4 Edit Types and Corresponding Strategies
 
-**类型 A:事实修正**(版本号、配置值、命令名变了)
+**Type A: Factual correction** (version number, config value, or command name changed)
 ```
-原文:使用 jsonwebtoken 库
-修改:使用 jose 库(v5.0.0)
-策略:直接替换,在 commit message 里说明原因
-```
-
-**类型 B:决策变更**(原决策被新决策替代)
-```
-原文:采用方案 A,因为 X
-修改:采用方案 B,因为 Y。方案 A 已弃用。
-策略:不要直接删原决策,标 [deprecated - 被 X 替代 @ YYYY-MM-DD],
-      或移到 <details> 折叠块
+Original: We use the jsonwebtoken library
+Edit: We use the jose library (v5.0.0)
+Strategy: Replace directly; explain the reason in the commit message.
 ```
 
-**类型 C:补充信息**(原有内容不全)
+**Type B: Decision change** (an old decision is superseded by a new one)
 ```
-原文:用 JWT
-修改:用 JWT(具体:Access Token 15min + Refresh Token 7d)
-策略:在原位置补充,保持原段落结构
-```
-
-**类型 D:删除内容**(原有内容过期)
-```
-原文:[某段过时内容]
-修改:[deprecated @ YYYY-MM-DD] 原因:XXX
-策略:绝不直接删,移到 <details> 折叠块(软删除)
+Original: Adopted approach A, because X
+Edit: Adopted approach B, because Y. Approach A is deprecated.
+Strategy: Do not delete the original decision outright. Mark it as
+          [deprecated - replaced by X @ YYYY-MM-DD], or move it
+          into a <details> collapsible block.
 ```
 
-**类型 E:结构重组**(用户明确要求改章节顺序)
+**Type C: Supplementary information** (existing content was incomplete)
 ```
-原文:[章节 A → 章节 B → 章节 C]
-修改:[章节 B → 章节 A → 章节 C]
-策略:确认用户意图(这种改动影响大),diff 预览必须显示
-```
-
-#### 8.5 反例对比
-
-**反例 1:顺手重构**
-
-❌ 错误(用户只要求改版本号):
-```
-(改版本号的同时,把整个章节重写了,合并了几个段落,改了术语)
+Original: We use JWT
+Edit: We use JWT (specifically: Access Token 15min + Refresh Token 7d)
+Strategy: Supplement in-place, preserving the original paragraph structure.
 ```
 
-✅ 正确:
+**Type D: Content removal** (existing content is outdated)
 ```
-(只改版本号那一个字符串,其他不动)
-```
-
-**反例 2:改变语义**
-
-❌ 错误(用户说"把表述调整一下"):
-```
-原文:方案 A 是临时选择,长期会迁移到 B
-修改:方案 A 是最终选择
-(反转了结论!)
+Original: [some outdated content]
+Edit: [deprecated @ YYYY-MM-DD] Reason: XXX
+Strategy: Never delete directly. Move to a <details> collapsible block (soft delete).
 ```
 
-✅ 正确:
+**Type E: Structural reorganization** (user explicitly requests section reorder)
 ```
-原文:方案 A 是临时选择,长期会迁移到 B
-修改:方案 A 是过渡方案,计划 Q3 迁移到 B
-(只调整表述,语义不变)
-```
-
-**反例 3:删除硬信息**
-
-❌ 错误(用户说"清理一下过时的命令"):
-```
-直接删除 `git flow feature finish` 命令
+Original: [Section A -> Section B -> Section C]
+Edit: [Section B -> Section A -> Section C]
+Strategy: Confirm the user's intent (this is a high-impact change). A diff preview must be shown.
 ```
 
-✅ 正确:
+#### 8.5 Counter-Examples
+
+**Counter-example 1: Opportunistic restructuring**
+
+Wrong (user only asked to update a version number):
 ```
-[deprecated @ 2026-06-21] 原因:已改用 GitHub PR 流程
+(While updating the version number, the entire section was rewritten, paragraphs were merged, and terminology was changed.)
+```
+
+Correct:
+```
+(Only the version number string was changed. Everything else is untouched.)
+```
+
+**Counter-example 2: Reversing semantics**
+
+Wrong (user said "tweak the wording"):
+```
+Original: Approach A is a temporary choice; we plan to migrate to B long-term.
+Edit: Approach A is the final choice.
+(The conclusion was reversed!)
+```
+
+Correct:
+```
+Original: Approach A is a temporary choice; we plan to migrate to B long-term.
+Edit: Approach A is an interim solution; we plan to migrate to B in Q3.
+(Only the phrasing was adjusted. The meaning is unchanged.)
+```
+
+**Counter-example 3: Deleting hard information**
+
+Wrong (user said "clean up the outdated commands"):
+```
+The `git flow feature finish` command was deleted entirely.
+```
+
+Correct:
+```
+[deprecated @ 2026-06-21] Reason: Migrated to GitHub PR workflow.
 <code>git flow feature finish</code>
 ```
 
-**反例 4:扩写**
+**Counter-example 4: Expanding beyond scope**
 
-❌ 错误(用户说"补充一下 X 的说明"):
+Wrong (user said "add a bit more detail about X"):
 ```
-在 X 位置加 5 段背景介绍、3 个例子、2 个表格
-```
-
-✅ 正确:
-```
-在 X 位置加 1-2 句必要说明,够用即止
+(Added 5 paragraphs of background, 3 examples, and 2 tables at the X location.)
 ```
 
-**反例 5:编造理由**
-
-❌ 错误(用户说"把 JWT 改成 jose"):
+Correct:
 ```
-(修改时自己补充:"因为 jsonwebtoken 已停止维护")
+(Added 1-2 sentences of necessary detail at the X location. Enough to be useful, nothing more.)
 ```
 
-✅ 正确:
+**Counter-example 5: Fabricating reasons**
+
+Wrong (user said "change JWT to jose"):
 ```
-(只改库的名字。原因如果用户没说,不要编。
- 或在 commit message 里说"原因:用户要求,未说明")
+(The edit also added: "because jsonwebtoken is no longer maintained.")
 ```
 
-#### 8.6 自检清单(diff 预览前必须过一遍)
+Correct:
+```
+(Only the library name was changed. No reason was fabricated — the user didn't mention one.
+ Or, if needed, noted in the commit message: "Reason: user requested; no explanation given.")
+```
 
-完成编辑后,Claude 自己 check:
+#### 8.6 Self-Check Checklist (Must Complete Before Diff Preview)
 
-- [ ] **最小 diff**:改动是否都是用户要求的?有没有顺手优化?
-- [ ] **语义保持**:有没有反转原文结论?
-- [ ] **风格保持**:有没有改变原文的语气、术语、结构?
-- [ ] **硬信息保护**:版本号、路径、命令、配置值有没有被删或改写?
-- [ ] **软删除**:删除的内容是否改为 `[deprecated]` 标注而非直接删?
-- [ ] **范围隔离**:如果给了 `--section`,有没有改到其他章节?
-- [ ] **无编造**:有没有自己补充"原因"、"背景"、"例子"?
+After completing the edit, Claude checks itself:
 
-任意一条不满足,修订后再进入步骤 9(diff 预览)。
+- [ ] **Minimal diff**: Are all changes exactly what the user requested? Any opportunistic optimizations?
+- [ ] **Semantic preservation**: Were any original conclusions reversed?
+- [ ] **Style preservation**: Was the original's tone, terminology, or structure altered?
+- [ ] **Hard information protected**: Were any version numbers, paths, commands, or config values deleted or rewritten?
+- [ ] **Soft deletion**: Was deleted content marked with `[deprecated]` rather than removed outright?
+- [ ] **Scope isolation**: If `--section` was given, were any other sections touched?
+- [ ] **No fabrication**: Were any "reasons," "background," or "examples" invented and added?
 
-#### 8.7 生成新 HTML
+If any item fails: revise before proceeding to Step 9 (diff preview).
 
-通过自检后,生成完整的修改后 HTML 内容,准备进入步骤 9(diff 预览)。
+#### 8.7 Generate New HTML
 
-### 步骤 9:Diff 预览
+After passing self-check, generate the complete edited HTML content and prepare for Step 9 (diff preview).
 
-写入前向用户展示统一 diff:
+### Step 9: Diff Preview
+
+Show a unified diff to the user before writing:
 
 ```
-📋 修改预览
+Edit Preview
 
-文件: 2026-06-21-auth-module-design.html
-范围: 全文(未限定 --section)
+File: 2026-06-21-auth-module-design.html
+Scope: Full document (--section not specified)
 
 ```diff
-- 我们使用 jsonwebtoken 库来签发 token。
-+ 我们使用 jose 库来签发 token(更现代,支持更多算法)。
+- We use the jsonwebtoken library to sign tokens.
++ We use the jose library to sign tokens (more modern, supports more algorithms).
 ```
 
-是否应用? (Y/n/e[手动编辑])
+Apply changes? (Y/n/e[manual edit])
 ```
 
-- `Y`:写入变更。
-- `n`:中止。
-- `e`:在用户的 `$EDITOR` 中打开文件手动编辑。
+- `Y`: write the changes.
+- `n`: abort.
+- `e`: open the file in the user's `$EDITOR` for manual editing.
 
-### 步骤 10:写入文件
+### Step 10: Write File
 
-原子写入(tmp + rename)。更新元数据头:
+Atomic write (tmp + rename). Update the metadata header:
 - `version` += 1
-- `updated` = 今天
+- `updated` = today
 
-### 步骤 11:更新 INDEX.yaml
+### Step 11: Update INDEX.yaml
 
-同 `/aim-append` 步骤 9:
-- version 递增
-- updated = 今天
-- last_modified_by = 当前用户
-- tokens 重算
-- contributors 更新
+Same as `/aim-append` step 9:
+- version incremented
+- updated = today
+- last_modified_by = current user
+- tokens recalculated
+- contributors updated
 
-同时追加到 `snapshots` 列表:
+Additionally, append to the `snapshots` list:
 
 ```yaml
 - date: "2026-06-21"
@@ -272,76 +273,76 @@ description: 修改文档中的现有内容。不同于 /aim-append(仅追加),/
   edited_by: "u-a3b2f1c9"
 ```
 
-### 步骤 12:Git 提交(可选)
+### Step 12: Git Commit (Optional)
 
 ```
 git add <filename> INDEX.yaml snapshots/
-git commit -m "[aim-edit] <PROJECT_NAME> - 修改 <filename> [cross-user:from <name>] (doc:<DOC_ID>)"
+git commit -m "[aim-edit] <PROJECT_NAME> - edited <filename> [cross-user:from <name>] (doc:<DOC_ID>)"
 ```
 
-### 步骤 13:输出结果
+### Step 13: Output Results
 
 ```
-✅ 文档已修改
+Document edited successfully
 
-📋 操作信息
-   目标文档: 认证模块设计 (aim-20260621-a3b2f1)
-   修改范围: 全文 / 章节 [xxx]
-   操作者: 朱陶锋 (u-a3b2f1c9)
-   版本: 2 → 3
+Operation Details
+   Target: Auth Module Design (aim-20260621-a3b2f1)
+   Scope: Full document / Section [xxx]
+   Edited by: Zhu Taofeng (u-a3b2f1c9)
+   Version: 2 -> 3
 
-📁 文件
-   当前: /Users/.../2026-06-21-auth-module-design.html
-   备份: /Users/.../snapshots/2026-06-21/2026-06-21-auth-module-design.html
+Files
+   Current: /Users/.../2026-06-21-auth-module-design.html
+   Backup:  /Users/.../snapshots/2026-06-21/2026-06-21-auth-module-design.html
 
-📝 下一步
-   - /aim-status              查看更新后状态
-   - /aim-expand <doc_id>     对比历史版本
+Next Steps
+   - /aim-status              View updated project status
+   - /aim-expand <doc_id>     Compare with historical versions
 ```
 
-## 边界情况
+## Edge Cases
 
-### 情况 A:编辑指令含糊
+### Case A: Ambiguous edit instructions
 
-- LLM 可能产生多种解读。
-- 展示所有解读,让用户选:`请选择你想要的修改方式: 1) ... 2) ...`。
+- The LLM may produce multiple interpretations.
+- Present all interpretations and let the user choose: `Please select how you want the edit applied: 1) ... 2) ...`.
 
-### 情况 B:编辑会删除大量内容
+### Case B: Edit would delete a large amount of content
 
-- 应用前警告:`本次修改将删除约 N 字内容。建议改为标 [deprecated] 折叠保留? (Y/n)`。
+- Warn before applying: `This edit will remove approximately N characters of content. Would you prefer to mark them as [deprecated] and collapse instead? (Y/n)`.
 
-### 情况 C:对高度归属文档的跨用户编辑
+### Case C: Cross-user edit on a highly-owned document
 
-- 更强警告:`这是 [张三] 的核心文档,你的修改会影响团队对它的理解。确认?`
+- Stronger warning: `This is [Zhang San]'s core document. Your changes will affect the team's shared understanding of it. Confirm?`.
 
-### 情况 D:快照目录已有同名文件(同一天多次编辑)
+### Case D: Snapshot directory already contains a file with the same name (multiple edits in one day)
 
-- 给备份文件名追加 `-N` 后缀。
+- Append a `-N` suffix to the backup filename.
 
-### 情况 E:拍摄快照后取消编辑
+### Case E: Edit is cancelled after the snapshot was taken
 
-- 快照无副作用(只是编辑前状态的备份)。
-- 提示:`已保留 pre-edit 快照(snapshots/YYYY-MM-DD/xxx),如不需要可手动删除`。
+- The snapshot is harmless (it is merely a pre-edit backup).
+- Notify: `A pre-edit snapshot has been preserved at snapshots/YYYY-MM-DD/xxx. You can manually delete it if not needed.`.
 
-### 情况 F:目标是压缩文档
+### Case F: Target is a compressed document
 
-- 阻止:`压缩文档不可直接 /aim-edit。如需更新内容,先 /aim-add 新文档,再 /aim-compress 增量合并`。
+- Block the operation: `Compressed documents cannot be edited directly with /aim-edit. To update their content, create a new document with /aim-add, then run /aim-compress to merge incrementally.`.
 
-## 输出风格
+## Output Style
 
-- 全程中文。
-- 在等宽块中显示 diff。
-- 始终显示备份路径。
-- 跨用户编辑:显著显示标记。
-- emoji:✅ 📋 📁 📝 ⚠️
+- Use English throughout.
+- Display diffs in monospaced code blocks.
+- Always display the backup path.
+- Cross-user edits: display cross-user marker prominently.
+- Emoji usage: specific emoji reserved for consistent visual markers.
 
-## 软沙盒行为
+## Soft Sandbox Behavior
 
-- 自己的文档:自由编辑,只需快照备份。
-- 他人的文档:每次跨用户确认。
-- 压缩文档:禁止直接编辑。
+- Own documents: free to edit, snapshot backup only.
+- Others' documents: explicit confirmation required every time.
+- Compressed documents: direct editing is prohibited.
 
-## 参考
+## References
 
-- 配套命令:`/aim-append`、`/aim-archive`、`/aim-expand`
-- 概念:`reference/soft-sandbox.md`、`reference/document-lifecycle.md`
+- Companion commands: `/aim-append`, `/aim-archive`, `/aim-expand`
+- Concepts: `reference/soft-sandbox.md`, `reference/document-lifecycle.md`

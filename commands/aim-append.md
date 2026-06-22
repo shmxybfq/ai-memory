@@ -1,367 +1,374 @@
 ---
 name: aim-append
-description: 向已有文档追加新章节。保留原内容,在末尾添加新章节。若文档所有者不同,会触发跨用户确认。
+description: Append a new section to an existing document. Preserves all original content and adds a new section at the end. Triggers cross-user confirmation when the document owner differs from the current user.
 ---
 
-# /aim-append — 向已有文档追加内容
+# /aim-append — Append Content to an Existing Document
 
-## 用途
+## Purpose
 
-在已有文档末尾追加新章节,原内容保持不变。适用于:
-- 给决策日志加更新
-- 记录后续调试笔记
-- 给调研文档添加新发现
+Appends a new section to the end of an existing document without altering any original content. Use cases include:
 
-与 `/aim-edit`(修改现有内容)和 `/aim-add`(创建新文件)不同。
+- Adding updates to a decision log
+- Recording follow-up debugging notes
+- Supplementing a research document with new findings
 
-## 用法
+Distinct from `/aim-edit` (modifies existing content) and `/aim-add` (creates a new file).
+
+## Usage
 
 ```
 /aim-append <doc_id|filename> [content]
 ```
 
-- `doc_id` 或 filename:目标文档。
-- `content`:可选,新章节内容。如省略,提示用户输入。
+- `doc_id` or `filename`: The target document.
+- `content`: Optional. The new section content. If omitted, the user is prompted to provide it.
 
-## 前置条件
+## Prerequisites
 
-- 项目已初始化。
-- 目标文档存在(在 INDEX.yaml 的 `active` 列表中,文件在磁盘上)。
-- 用户身份已建立。
+- The project must be initialized.
+- The target document must exist (listed in `INDEX.yaml` under `active`, and the file must be present on disk).
+- The user identity must be established.
 
-## 流程
+## Workflow
 
-### 步骤 1:解析当前项目
+### Step 1: Resolve the Current Project
 
-同 `/aim-add` 步骤 1。
+Same as `/aim-add` Step 1.
 
-### 步骤 2:解析用户身份
+### Step 2: Resolve User Identity
 
-读取 `~/.claude/ai-memory/identity.json`。必需。
+Read `~/.claude/ai-memory/identity.json`. Required.
 
-### 步骤 3:解析目标文档
+### Step 3: Resolve the Target Document
 
-匹配 `<doc_id|filename>` 参数:
-1. 尝试在 INDEX.yaml 的 `active` 中精确匹配 `doc_id`。
-2. 尝试匹配 filename(basename)。
-3. 尝试部分 title 匹配(多个则交互确认)。
+Match the `<doc_id|filename>` argument:
 
-如果在 active 中找不到:也检查压缩文档的归档区(无法向归档追加 — 建议 `/aim-expand` 先展开,或改用 `/aim-add`)。
+1. Try an exact `doc_id` match in `INDEX.yaml`'s `active` list.
+2. Try matching by filename (basename).
+3. Try a partial title match (if multiple matches, interactively confirm).
 
-如果任何地方都找不到:`文档 [xxx] 不存在。/aim-list 查看所有文档`。
+If not found in `active`: also check the archive area for compressed documents. Cannot append to archived documents — suggest `/aim-expand` first, or use `/aim-add` instead.
 
-将目标条目保存为 `DOC`。
+If not found anywhere: `Document [xxx] does not exist. Run /aim-list to see all documents.`
 
-### 步骤 4:检查软沙盒(跨用户)
+Save the matched entry as `DOC`.
 
-比较 `DOC.owner` 与当前用户 ID。
+### Step 4: Check Soft Sandbox (Cross-User)
 
-**同一用户**:无需确认,直接继续。
+Compare `DOC.owner` with the current user ID.
 
-**不同用户**(跨沙盒):
+**Same user**: No confirmation needed. Proceed directly.
 
-```
-⚠️ 跨用户操作
-
-文档 [xxx] 的 owner 是 [张三] (u-b1c2d3e4)。
-你 [朱陶锋] (u-a3b2f1c9) 不是 owner。
-
-是否确认追加内容到他人文档?
-本次操作会在文档中标注 [cross-user:from 朱陶锋 @ 2026-06-21]。
-
-确认? (Y/n)
-```
-
-按项目规则:不做缓存,每次跨用户操作都要重新确认。
-
-**如果拒绝**:中止并提示 `操作已取消`。
-
-### 步骤 5:收集新章节内容
-
-如果提供了参数:作为 `RAW_CONTENT`。
-否则提示:
+**Different user** (cross-sandbox):
 
 ```
-请输入要追加的内容(可以是补充说明、新发现、后续进展等):
-[等待用户输入]
+Cross-user operation
+
+Document [xxx] is owned by [Alice] (u-b1c2d3e4).
+You [Bob] (u-a3b2f1c9) are not the owner.
+
+Confirm appending content to another user's document?
+This operation will be annotated with [cross-user:from Bob @ 2026-06-21].
+
+Confirm? (Y/n)
 ```
 
-### 步骤 6:确定章节元数据
+Per project rules: no caching — every cross-user operation requires fresh confirmation.
 
-询问用户(带合理默认):
+**If declined**: Abort and display `Operation cancelled`.
+
+### Step 5: Collect New Section Content
+
+If the argument provided content: use it as `RAW_CONTENT`.
+Otherwise, prompt:
 
 ```
-章节标题(可选,默认「更新 - YYYY-MM-DD」):
+Enter the content to append (e.g., supplementary notes, new findings, progress updates):
+[wait for user input]
 ```
 
-保存为 `SECTION_TITLE`。
+### Step 6: Determine Section Metadata
 
-### 步骤 7:生成 HTML 章节
+Ask the user (with a sensible default):
 
-#### 7.1 角色定位
-
-**你不是"重新写文档的人",你是"为已有文档补章节的人"。**
-
-读者是 6 个月后的新会话,他会读完整文档(原章节 + 你的追加章节)。所以你的章节必须:
-- 与原文章节**互补**(补充新信息),不**重复**(抄原有内容)
-- 与原文章节**风格一致**(读者感觉是一份文档,不是拼凑)
-
-> **失败模式警告**:LLM 追加章节时最常见的 4 种失败 — 重复原文已有信息、章节标题与原文档章节重名、用与原文不同的风格(原文表格、追加用流水账)、追加内容信息密度过低。
-
-#### 7.2 必须追加(MUST include)
-
-1. **原文档没有的新信息**:新决策、新踩坑、新约束、新配置
-2. **明确的时间标记**:`<p class="meta">追加 by XXX @ YYYY-MM-DD</p>`
-3. **与原章节的关联说明**(如适用):"基于第三章的方案,本次补充..."
-
-#### 7.3 禁止追加(MUST NOT include)
-
-1. **重复原文已有内容**:如果原文已说 X,不要在追加里再说 X
-2. **覆盖原文**(用 `/aim-edit` 而非 `/aim-append`)
-3. **流水账**(同 `/aim-add` 5.3)
-4. **试错过程**(同 `/aim-add` 5.3)
-5. **闲聊**(同 `/aim-add` 5.3)
-6. **编造**(同 `/aim-add` 5.3)
-7. **与原文风格冲突**:原文用表格,追加也用表格;原文严谨,追加不口语化
-
-#### 7.4 写作风格
-
-**与原文对齐**:
-- 先扫一遍原文档,识别其风格(用表格?用列表?用代码块?段落多长?)
-- 追加章节沿用同样风格
-
-**信息密度**:
-- 单次追加 300-1500 字(低于 `/aim-add` 的 800-2000,因为是增量)
-- 超 1500 字提示用户改用 `/aim-add` 创建独立文档
-
-**时效标注**:
-- 同 `/aim-add` 5.4(`[临时]` / `[待确认]` / `[deprecated]`)
-
-**硬信息保护**:
-- 同 `/aim-add` 5.4(版本号、路径、命令原样保留)
-
-#### 7.5 结构模板(按追加类型)
-
-**类型 A:补充决策**(原文档记录了决策,后续有新决策补充):
 ```
-## 更新 - YYYY-MM-DD(或具体章节名)
-
-### 新决策
-[决策内容]
-
-### 与原决策的关系
-[补充 / 修正 / 替代]
+Section title (optional, default: "Update - YYYY-MM-DD"):
 ```
 
-**类型 B:踩坑追加**(原文档是设计/方案,后续踩坑):
+Save as `SECTION_TITLE`.
+
+### Step 7: Generate the HTML Section
+
+#### 7.1 Role Definition
+
+**You are not "rewriting the document." You are "adding a supplementary chapter to an existing document."**
+
+The reader is a future session 6 months from now, reading the full document (original sections + your appended section). Your section must:
+
+- **Complement** the original sections (add new information), not **duplicate** them (repeat what the original already says).
+- **Match the original's style** (the reader should feel they are reading one cohesive document, not a patchwork).
+
+> **Failure mode warning**: The 4 most common LLM mistakes when appending — (1) repeating information already in the original, (2) giving the appended section the same title as an existing section, (3) using a different style than the original (e.g., original uses tables, append uses running prose), (4) appends with information density so low it adds no value.
+
+#### 7.2 Must Include
+
+1. **New information not present in the original**: new decisions, newly discovered pitfalls, new constraints, new configurations.
+2. **Clear timestamp**: `<p class="meta">Appended by XXX @ YYYY-MM-DD</p>`.
+3. **Cross-reference to original sections** (if applicable): "Building on the approach in Section 3, this update adds..."
+
+#### 7.3 Must Not Include
+
+1. **Repetition of original content**: if the original already states X, do not restate X in the appendix.
+2. **Overwriting the original** (use `/aim-edit` instead of `/aim-append`).
+3. **Running diary** (same as `/aim-add` 5.3).
+4. **Trial-and-error process** (same as `/aim-add` 5.3).
+5. **Chatter** (same as `/aim-add` 5.3).
+6. **Fabrication** (same as `/aim-add` 5.3).
+7. **Style clash with the original**: if the original uses tables, the appendix must use tables; if the original is formal, the appendix must not be colloquial.
+
+#### 7.4 Writing Style
+
+**Align with the original**:
+- Scan the original document first to identify its style (tables? lists? code blocks? typical paragraph length?).
+- The appended section must follow the same conventions.
+
+**Information density**:
+- A single append should be 300-1500 words (lower than `/aim-add`'s 800-2000, since this is incremental).
+- If content exceeds 1500 words, prompt the user to use `/aim-add` to create a standalone document instead.
+
+**Temporal annotations**:
+- Same as `/aim-add` 5.4 (`[temp]` / `[unconfirmed]` / `[deprecated]`).
+
+**Hard information preservation**:
+- Same as `/aim-add` 5.4 (version numbers, file paths, commands preserved verbatim).
+
+#### 7.5 Structure Templates (by Append Type)
+
+**Type A: Decision Supplement** (original recorded a decision; a new decision follows):
+
 ```
-## 实施踩坑 - YYYY-MM-DD
+## Update - YYYY-MM-DD (or specific section name)
 
-### 现象
-### 根因
-### 修复
-### 避免方法
+### New Decision
+[decision content]
+
+### Relationship to Original Decision
+[supplement / correction / replacement]
 ```
 
-**类型 C:进度更新**(原文档是待办/计划,后续完成):
+**Type B: Pitfall Report** (original is a design/plan; implementation reveals issues):
+
 ```
-## 进度更新 - YYYY-MM-DD
+## Implementation Pitfalls - YYYY-MM-DD
 
-### 已完成
-[列表]
-
-### 待办调整
-[新增/移除/优先级变化]
-```
-
-**类型 D:配置变更**(原文档记录了某配置,后续变更):
-```
-## 配置变更 - YYYY-MM-DD
-
-### 变更内容
-[旧值 → 新值]
-
-### 变更原因
-
-### 影响范围
+### Symptom
+### Root Cause
+### Fix
+### Prevention
 ```
 
-#### 7.6 反例对比
+**Type C: Progress Update** (original is a to-do/plan; items are now complete):
 
-**反例 1:重复原文**
+```
+## Progress Update - YYYY-MM-DD
 
-❌ 错误(原文已说"采用 JWT"):
-```
-本次确认继续使用 JWT 方案,采用 JWT 是合理的...
-```
+### Completed
+[list]
 
-✅ 正确:
-```
-本次补充:JWT 实现细节已确定,使用 jose 库(v5.0.0),不再是 jsonwebtoken。
+### Adjusted To-Dos
+[added / removed / priority changes]
 ```
 
-**反例 2:风格不一致**
+**Type D: Configuration Change** (original recorded a config; values have changed):
 
-❌ 错误(原文用表格对比,追加用流水账):
 ```
-我们这次又试了 A 方案,然后发现不行,然后试了 B...
+## Configuration Change - YYYY-MM-DD
+
+### Change
+[old value -> new value]
+
+### Reason
+### Impact Scope
 ```
 
-✅ 正确(沿用表格):
+#### 7.6 Counter-Examples
+
+**Counter-example 1: Repeating the original**
+
+Bad (original already says "using JWT"):
 ```
-| 方案 | 测试结果 | 结论 |
+We confirmed continuing with the JWT approach; using JWT is reasonable...
+```
+
+Good:
+```
+JWT implementation details are now settled: using the jose library (v5.0.0), replacing the previous jsonwebtoken dependency.
+```
+
+**Counter-example 2: Style mismatch**
+
+Bad (original uses comparison tables; append uses running prose):
+```
+We tried approach A again, it didn't work, then we tried B...
+```
+
+Good (following the table convention):
+```
+| Approach | Test Result | Conclusion |
 |---|---|---|
-| A | 失败 | 性能不达标 |
-| B | 通过 | 采用 |
+| A | Failed | Performance below threshold |
+| B | Passed | Adopted |
 ```
 
-**反例 3:覆盖原文(应改用 /aim-edit)**
+**Counter-example 3: Overwriting the original (should use /aim-edit)**
 
-❌ 错误:
+Bad:
 ```
-原文章节"方案选择"是错的,本次追加里我重写一遍正确的。
-```
-
-✅ 正确:
-```
-(如果原文有错,提示用户用 /aim-edit 修正,不要在 append 里覆盖)
-本次追加只补充新内容,不重写已有章节。
+The original "Approach Selection" section was wrong, so I'm rewriting it correctly here in this appendix.
 ```
 
-**反例 4:追加内容过长**
-
-❌ 错误(单次追加 5000 字):
+Good:
 ```
-[超长章节,把整个新模块设计写进来]
-```
-
-✅ 正确:
-```
-(超长内容应提示用户)
-建议:本段内容较长,改用 /aim-add 创建独立文档更合适。
+(If the original contains errors, advise the user to fix them with /aim-edit — do not overwrite in an append.)
+This appendix only supplements with new content; it does not rewrite existing sections.
 ```
 
-#### 7.7 自检清单(写入前必须过一遍)
+**Counter-example 4: Append content is too long**
 
-完成 HTML 章节生成后,Claude 自己 check:
+Bad (single append of 5000 characters):
+```
+[an oversized section containing an entire new module design]
+```
 
-- [ ] **无重复**:追加内容没有重复原文已有的?
-- [ ] **风格一致**:与原文档风格对齐(表格/列表/段落)?
-- [ ] **章节标题不冲突**:追加的标题与原文章节不重名?
-- [ ] **结论先行**:同 `/aim-add`(每段第一句是结论)?
-- [ ] **硬信息完整**:版本号、路径、命令原样保留?
-- [ ] **时效标注**:临时/待确认的有标记?
-- [ ] **长度合理**:300-1500 字范围(超长已提示用户改用 `/aim-add`)?
+Good:
+```
+(This content is too long for an append.)
+Suggestion: this content is substantial enough for a standalone document. Consider using /aim-add instead.
+```
 
-任意一条不满足,修订后再进入步骤 8。
+#### 7.7 Self-Check Checklist (must pass before writing)
 
-#### 7.8 渲染 HTML 章节
+After generating the HTML section, Claude must verify:
 
-通过自检后,把内容套到追加章节模板:
+- [ ] **No repetition**: the appended content does not duplicate anything already in the original.
+- [ ] **Style consistent**: matches the original document's conventions (tables / lists / paragraph format).
+- [ ] **No title collision**: the appended section's title does not duplicate any existing section title in the original.
+- [ ] **Lead with the conclusion**: same as `/aim-add` (first sentence of each paragraph is the conclusion).
+- [ ] **Hard information intact**: version numbers, paths, and commands are preserved verbatim.
+- [ ] **Temporal tags present**: temporary/unconfirmed items are annotated.
+- [ ] **Length appropriate**: within the 300-1500 word range (if exceeded, the user was prompted to use `/aim-add`).
+
+If any item fails, revise before proceeding to Step 8.
+
+#### 7.8 Render the HTML Section
+
+Once the self-check passes, wrap the content in the appendix template:
 
 ```html
 <section class="appendix">
   <h2>{{SECTION_TITLE}}</h2>
-  <p class="meta">追加 by {{USER_NAME}} ({{USER_ID}}) @ {{TODAY}}</p>
+  <p class="meta">Appended by {{USER_NAME}} ({{USER_ID}}) @ {{TODAY}}</p>
   {{CONTENT}}
 </section>
 ```
 
-如果是跨用户,添加 `data-cross-user` 属性和内联标注。
+If this is a cross-user operation, add the `data-cross-user` attribute and an inline annotation.
 
-### 步骤 8:插入到文档
+### Step 8: Insert into the Document
 
-1. 完整读取目标 HTML 文件。
-2. 找到末尾的元数据块(`<div class="highlight">文档元数据...</div>`)。
-3. 把新章节插入到元数据块**之前**。
-4. 更新元数据头注释:
-   - `version` 加 1。
-   - `updated` 更新为今天。
-5. 保存文件(原子写入:tmp + rename)。
+1. Read the target HTML file in full.
+2. Locate the metadata block at the end (`<div class="highlight">Document metadata...</div>`).
+3. Insert the new section immediately **before** the metadata block.
+4. Update the metadata header comment:
+   - Increment `version` by 1.
+   - Set `updated` to today's date.
+5. Save the file (atomic write: tmp + rename).
 
-### 步骤 9:更新 INDEX.yaml
+### Step 9: Update INDEX.yaml
 
-对目标文档条目:
-- `version`:加 1。
-- `updated`:今天。
-- `last_modified_by`:当前用户。
-- `tokens`:从新文件大小重新计算。
-- 如果用户还不在 `contributors` 中则添加:
+For the target document entry:
+
+- `version`: increment by 1.
+- `updated`: today's date.
+- `last_modified_by`: the current user.
+- `tokens`: recalculate from the new file size.
+- If the user is not yet listed in `contributors`, add them:
   ```yaml
   contributors:
-    - { user: "u-a3b2f1c9", name: "朱陶锋", last: "2026-06-21" }
+    - { user: "u-a3b2f1c9", name: "Bob", last: "2026-06-21" }
   ```
 
-更新顶层 `updated` 为今天。
+Update the top-level `updated` to today's date.
 
-### 步骤 10:Git 提交(可选)
+### Step 10: Git Commit (Optional)
 
-如果在 git 中:
+If inside a git repository:
 
 ```
 git add <filename> INDEX.yaml
-git commit -m "[aim-append] <PROJECT_NAME> - 追加 <SECTION_TITLE> 到 <filename> [cross-user:from <name>] (doc:<DOC_ID>)"
+git commit -m "[aim-append] <PROJECT_NAME> - append <SECTION_TITLE> to <filename> [cross-user:from <name>] (doc:<DOC_ID>)"
 ```
 
-仅在适用时包含 `[cross-user:from <name>]`。
+Only include `[cross-user:from <name>]` when applicable.
 
-### 步骤 11:输出结果
+### Step 11: Output Result
 
 ```
-✅ 已追加内容
+Done - content appended.
 
-📋 操作信息
-   目标文档: 认证模块设计 (aim-20260621-a3b2f1)
-   追加章节: 更新 - 2026-06-21
-   操作者: 朱陶锋 (u-a3b2f1c9)
-   版本: 1 → 2
+Operation details
+   Target document: Auth Module Design (aim-20260621-a3b2f1)
+   Appended section: Update - 2026-06-21
+   Operator: Bob (u-a3b2f1c9)
+   Version: 1 -> 2
 
-📁 文件
+Files
    /Users/.../2026-06-21-auth-module-design.html
 
-📝 下一步
-   - /aim-status     查看更新后状态
-   - /aim-edit       如需修改已有内容
+Next steps
+   - /aim-status     View updated document state
+   - /aim-edit       If you need to modify existing content
 ```
 
-## 边界情况
+## Edge Cases
 
-### 情况 A:目标文档处于压缩/归档状态
+### Case A: Target document is compressed/archived
 
-- 无法向压缩文档追加(它是 `__project__` 所有,冻结状态)。
-- 建议:改用 `/aim-add` 用新内容创建新文档。
+- Cannot append to compressed documents (owned by `__project__`, frozen state).
+- Suggestion: use `/aim-add` to create a new document with the new content instead.
 
-### 情况 B:文档文件损坏(无元数据头)
+### Case B: Document file is corrupted (no metadata header)
 
-- 检测:无法解析 `<!-- aim:... -->`。
-- 停止:`文档元数据缺失,可能损坏。运行 /aim-rebuild 修复后再试`。
+- Detection: unable to parse `<!-- aim:... -->`.
+- Halt: `Document metadata missing; file may be corrupted. Run /aim-rebuild to repair, then retry.`
 
-### 情况 C:跨用户确认被拒绝
+### Case C: Cross-user confirmation declined
 
-- 干净中止。无文件变更。
+- Clean abort. No files are modified.
 
-### 情况 D:内容过大(单次追加 >3000 tokens)
+### Case D: Content is too large (single append exceeds 3000 tokens)
 
-- 警告:`追加内容较长(X tokens),建议拆分为独立文档 /aim-add。是否继续? (Y/n)`。
+- Warning: `Append content is large (X tokens). Consider splitting into a standalone document via /aim-add. Continue anyway? (Y/n)`
 
-### 情况 E:文档版本变高(>10)
+### Case E: Document version is high (>10)
 
-- 多次追加后建议:`文档已追加 10+ 次,建议 /aim-compress 整合到压缩文档`。
+- After many appends, suggest: `This document has been appended 10+ times. Consider /aim-compress to consolidate into a compressed document.`
 
-## 输出风格
+## Output Style
 
-- 全程中文。
-- 显式显示版本号递增。
-- 跨用户操作:输出中始终显示跨用户标记。
-- emoji:✅ 📋 📁 📝 ⚠️
+- Use English throughout.
+- Display the version number increment explicitly.
+- For cross-user operations, always display the cross-user annotation in the output.
+- Emoji: ✅ 📋 📁 📝 ⚠️
 
-## 软沙盒行为
+## Soft Sandbox Behavior
 
-- 自己的文档:自由追加,无需确认。
-- 他人的文档:每次显式确认,无缓存。
-- 压缩文档(`owner=__project__`):对所有人都视为跨用户(因为它是共享的)。
+- Own documents: append freely, no confirmation required.
+- Another user's documents: explicit confirmation every time, no caching.
+- Compressed documents (`owner=__project__`): treated as cross-user for everyone (since they are shared).
 
-## 参考
+## References
 
-- 配套命令:`/aim-add`、`/aim-edit`、`/aim-archive`
-- 概念:`reference/soft-sandbox.md`
+- Related commands: `/aim-add`, `/aim-edit`, `/aim-archive`
+- Concept: `reference/soft-sandbox.md`

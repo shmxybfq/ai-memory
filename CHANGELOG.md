@@ -1,109 +1,115 @@
-# 变更日志(Changelog)
+# Changelog
 
-ai-memory 的所有重要变更都记录在此。
+All notable changes to ai-memory are documented in this file.
 
-格式基于 [Keep a Changelog](https://keepachangelog.com/),本项目遵循[语义化版本规范](https://semver.org/)。
+The format is based on [Keep a Changelog](https://keepachangelog.com/), and this project adheres to [Semantic Versioning](https://semver.org/).
 
-## [0.1.0] — 2026-06-21(MVP)
+## [Unreleased]
 
-### 新增(Added)
+### Changed
 
-- **核心命令集(14 个命令):**
-  - `/aim-init` — 初始化项目记忆(集中式或分散式模式)
-  - `/aim-add` — 添加新文档(带元数据嵌入)
-  - `/aim-append` — 向已有文档追加章节
-  - `/aim-edit` — 修改已有文档(自动快照备份)
-  - `/aim-archive` — 把文档移入快照
-  - `/aim-compress` — 合并活跃文档为双区压缩文件(MVP 单轮)
-  - `/aim-status` — 显示项目状态、token 使用、Git 漂移
-  - `/aim-verify` — INDEX 与文件系统一致性检查
-  - `/aim-rebuild` — 从文件系统重建 INDEX.yaml
-  - `/aim-expand` — 反向搜索快照获取原始细节
-  - `/aim-list` — 列出所有 ai-memory 项目
-  - `/aim-help` — 内置命令目录
-  - `/aim-identity` — 查看/修改全局用户身份
-  - `/aim-uninit` — 移除 Skill 注入(项目级或全局)
+- Translated all command documents, SKILL.md, templates, install.sh, CHANGELOG, and DEV-PROGRESS from Chinese back to English for global audience accessibility. README.zh-CN.md preserved as Chinese version. All functional content (6-layer quality framework, command registration mechanism, etc.) retained.
 
-- **存储模式:**
-  - 集中式模式:所有项目放在同一个根目录下,共享一个 CLAUDE.md
-  - 分散式模式:每个项目内嵌 `.ai-memory/` 目录
+## [0.1.0] — 2026-06-21 (MVP)
 
-- **软沙盒:**
-  - 全局用户身份存储在 `~/.claude/ai-memory/identity.json`
-  - 跨用户操作需显式确认(无缓存,每次必问)
-  - 公共命令(status、verify、rebuild、list、expand、help)绕过沙盒
+### Added
 
-- **文档模型:**
-  - HTML 格式,元数据嵌入在 HTML 注释中
-  - 文件系统是事实源;INDEX.yaml 是可重建缓存
-  - 基于快照的历史(绝不删除,只移动)
-  - Token 估算(中文约 1 字符/token,英文约 4 字符/token)
+- **Core command set (14 commands):**
+  - `/aim-init` — Initialize project memory (centralized or distributed mode)
+  - `/aim-add` — Add a new document (with embedded metadata)
+  - `/aim-append` — Append sections to an existing document
+  - `/aim-edit` — Edit an existing document (auto snapshot backup)
+  - `/aim-archive` — Move a document into a snapshot
+  - `/aim-compress` — Merge active documents into a dual-zone compressed file (MVP single-pass)
+  - `/aim-status` — Show project status, token usage, Git drift
+  - `/aim-verify` — Check INDEX vs filesystem consistency
+  - `/aim-rebuild` — Rebuild INDEX.yaml from the filesystem
+  - `/aim-expand` — Reverse-search snapshots for original details
+  - `/aim-list` — List all ai-memory projects
+  - `/aim-help` — Built-in command directory
+  - `/aim-identity` — View/modify global user identity
+  - `/aim-uninit` — Remove Skill injection (project-level or global)
 
-- **压缩(MVP):**
-  - 双区输出:当前有效区(7 个固定章节)+ 历史归档区
-  - 来源标注保留
-  - 基于规则的硬信息校验(版本号、路径、命令、配置)
-  - 与已有压缩文档的增量合并
+- **Storage modes:**
+  - Centralized mode: all projects under a single root directory, sharing one CLAUDE.md
+  - Distributed mode: each project has its own embedded `.ai-memory/` directory
 
-- **操作安全:**
-  - 所有破坏性操作走 macOS 废纸篓(可恢复)
-  - 修改 INDEX.yaml 前自动备份
-  - CLAUDE.md 规则追加(绝不覆盖用户内容)
-  - 规则标记(`<!-- ai-memory rules start/end -->`)便于干净移除
+- **Soft sandbox:**
+  - Global user identity stored in `~/.claude/ai-memory/identity.json`
+  - Cross-user operations require explicit confirmation (no caching, always ask)
+  - Public commands (status, verify, rebuild, list, expand, help) bypass the sandbox
 
-- **分发:**
-  - `install.sh` 一行命令安装器
-  - 支持 Git clone 安装
-  - 英文(主)+ 中文 README
-  - 自动版本检查(每天一次,非阻塞,可禁用)
+- **Document model:**
+  - HTML format with metadata embedded in HTML comments
+  - Filesystem is the source of truth; INDEX.yaml is a rebuildable cache
+  - Snapshot-based history (never delete, only move)
+  - Token estimation (~1 char/token for CJK, ~4 chars/token for English)
 
-### 确立的设计原则
+- **Compression (MVP):**
+  - Dual-zone output: active section (7 fixed chapters) + archive section
+  - Source attribution preserved
+  - Rule-based hard-info verification (version numbers, paths, commands, configs)
+  - Incremental merge with existing compressed documents
 
-1. 文件系统是事实源
-2. 软约束优于硬权限
-3. 保守压缩(宁可保留也不丢失)
-4. 基于规则的校验(不信任 LLM 自检)
-5. Skill 本体与用户数据完全分离
+- **Operational safety:**
+  - All destructive operations go through macOS Trash (recoverable)
+  - Automatic INDEX.yaml backup before modification
+  - CLAUDE.md rule appending (never overwrites user content)
+  - Rule markers (`<!-- ai-memory rules start/end -->`) for clean removal
 
-### 局限(推迟到后续版本)
+- **Distribution:**
+  - `install.sh` one-line installer
+  - Git clone installation support
+  - English (primary) + Chinese README
+  - Automatic version checking (once daily, non-blocking, disableable)
 
-- 单轮压缩(无三阶段"分析 → 合并 → 校验"流水线)
-- 无 MCP 集成(仅 Claude Code)
-- 无多语言 UI(中文为默认,英文仅文档)
-- 无自动调度(所有命令由用户触发)
-- 无 GUI
+### Established Design Principles
 
-## 路线图(Roadmap)
+1. Filesystem is the source of truth
+2. Soft constraints over hard permissions
+3. Conservative compression (keep rather than lose)
+4. Rule-based verification (don't trust LLM self-checks)
+5. Complete separation of Skill code and user data
 
-### v0.2.0 — 压缩流水线升级
-- 三阶段压缩流水线(分析 → 合并 → 校验,带重试循环)
-- 章节级质量评分
-- 自动识别"应拆分为多次压缩"的场景
-- 校验失败时的迭代精修
+### Limitations (deferred to future versions)
 
-### v0.3.0 — 跨工具支持
-- MCP server 实现
-- Cursor / Windsurf / Continue 集成
-- 标准化文档 schema,支持工具无关访问
+- Single-pass compression (no three-stage "analyze → merge → verify" pipeline)
+- No MCP integration (Claude Code only)
+- No multi-language UI (English only; Chinese README available as README.zh-CN.md)
+- No automatic scheduling (all commands triggered by user)
+- No GUI
 
-### v0.4.0 — 协作增强
-- 团队身份同步(共享用户目录)
-- 跨用户编辑的 Pull Request 风格评审
-- 冲突解决辅助
-- 可选的信任缓存(按用户对,带过期)
+## Roadmap
 
-### v0.5.0 — 生产力
-- 创建文档时自动摘要(Claude 起草,用户确认)
-- 跨活跃文档的智能去重检测
-- 基于标签的探索视图
-- 跨所有项目的搜索
+### v0.2.0 — Compression Pipeline Upgrade
+- Three-stage compression pipeline (analyze → merge → verify, with retry loop)
+- Chapter-level quality scoring
+- Automatic detection of scenarios that should be split into multiple compression passes
+- Iterative refinement on verification failure
 
-### v1.0.0 — 正式发布(GA)
-- 稳定文件格式(冻结,后续版本向后兼容)
-- 完整测试套件
-- 多平台安装器(macOS、Linux、WSL)
-- 公开性能基准
+### v0.3.0 — Cross-Tool Support
+- MCP server implementation
+- Cursor / Windsurf / Continue integration
+- Standardized document schema for tool-agnostic access
+
+### v0.4.0 — Collaboration Enhancements
+- Team identity sync (shared user directory)
+- Pull Request-style review for cross-user edits
+- Conflict resolution assistance
+- Optional trust cache (per user pair, with expiration)
+
+### v0.5.0 — Productivity
+- Auto-summaries on document creation (Claude drafts, user confirms)
+- Smart deduplication detection across active documents
+- Tag-based exploration view
+- Search across all projects
+
+### v1.0.0 — General Availability
+- Stable file format (frozen, backward-compatible in subsequent versions)
+- Complete test suite
+- Multi-platform installers (macOS, Linux, WSL)
+- Published performance benchmarks
 
 ---
 
-更早的历史:项目启动于 2026-06-15,MVP 开发周期 2026-06-15 → 2026-06-21。
+Earlier history: Project started 2026-06-15, MVP development cycle 2026-06-15 → 2026-06-21.

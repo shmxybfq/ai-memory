@@ -1,170 +1,170 @@
 ---
 name: aim-list
-description: 列出本机上由 ai-memory 管理的所有项目。扫描已知根目录和分散式项目标记。只读概览。
+description: List all projects managed by ai-memory on this machine. Scans known root directories and distributed project markers. Read-only overview.
 ---
 
-# /aim-list — 列出所有项目
+# /aim-list — List All Projects
 
-## 用途
+## Purpose
 
-展示本机上所有已初始化 ai-memory 的项目。帮助用户:
-- 回忆项目记忆存在哪里
-- 在项目之间切换上下文
-- 审计哪些项目在用 ai-memory
+Show all projects on this machine that have been initialized with ai-memory. Helps users:
+- Recall where project memories live
+- Switch context between projects
+- Audit which projects use ai-memory
 
-适用场景:
-- 忘了某个项目的记忆存在哪里
-- 想概览自己的 ai-memory 使用情况
-- 设置新机器,检查已初始化了哪些
+Typical use cases:
+- Forgot where a project's memory is stored
+- Want an overview of ai-memory usage
+- Setting up a new machine and checking what is initialized
 
-## 用法
+## Usage
 
 ```
 /aim-list [--mode <central|distributed|all>]
 ```
 
-- 无参数:列出全部(默认)。
-- `--mode central`:只列集中式项目。
-- `--mode distributed`:只列分散式项目。
+- No arguments: list all (default).
+- `--mode central`: list only centralized projects.
+- `--mode distributed`: list only distributed projects.
 
-## 前置条件
+## Prerequisites
 
-无。
+None.
 
-## 流程
+## Workflow
 
-### 步骤 1:扫描集中式项目
+### Step 1: Scan centralized projects
 
-读取 `~/.claude/ai-memory/projects.json`(已知根的注册表)。
+Read `~/.claude/ai-memory/projects.json` (the registry of known roots).
 
-对每个注册的根:
-1. 列出子目录。
-2. 对每个子目录检查 `INDEX.yaml` 是否存在。
-3. 如果存在,解析并提取:项目名、模式、创建日期、文档计数。
+For each registered root:
+1. List subdirectories.
+2. For each subdirectory, check if `INDEX.yaml` exists.
+3. If it does, parse and extract: project name, mode, creation date, document count.
 
-同时扫描默认根 `~/Desktop/persistent-document/`(即使不在注册表中)。
+Also scan the default root `~/Desktop/persistent-document/` even if it is not in the registry.
 
-### 步骤 2:扫描分散式项目
+### Step 2: Scan distributed projects
 
-遍历常见代码目录,查找 `.ai-memory/INDEX.yaml`:
+Walk common code directories looking for `.ai-memory/INDEX.yaml`:
 
-默认扫描位置:
+Default scan locations:
 - `~/Desktop/`
 - `~/Documents/`
-- `~/Projects/`(如存在)
-- `~/code/`(如存在)
-- `~/dev/`(如存在)
+- `~/Projects/` (if it exists)
+- `~/code/` (if it exists)
+- `~/dev/` (if it exists)
 
-深度限制为 3 层,避免扫描整个文件系统。
+Depth limit of 3 levels to avoid scanning the entire filesystem.
 
-对每个找到的 `.ai-memory/INDEX.yaml`:
-1. 解析它。
-2. 提取项目信息。
-3. 记录绝对路径。
+For each `.ai-memory/INDEX.yaml` found:
+1. Parse it.
+2. Extract project information.
+3. Record the absolute path.
 
-### 步骤 3:为每个项目解析身份
+### Step 3: Resolve identity for each project
 
-对每个项目的 `initialized_by.id`,尝试解析为姓名:
-- 检查 `~/.claude/ai-memory/identity.json`(若匹配当前用户)。
-- 否则显示原始 ID。
+For each project's `initialized_by.id`, attempt to resolve to a name:
+- Check `~/.claude/ai-memory/identity.json` (if it matches the current user).
+- Otherwise, show the raw ID.
 
-### 步骤 4:计算汇总统计
+### Step 4: Calculate summary statistics
 
-对每个项目:
-- 活跃文档数 + 总 tokens
-- 压缩文档数 + tokens
-- 快照计数
-- 最近更新日期
-- 距上次活动的天数
+For each project:
+- Active document count + total tokens
+- Compressed document count + tokens
+- Snapshot count
+- Most recent update date
+- Days since last activity
 
-### 步骤 5:排序与分组
+### Step 5: Sort and group
 
-按最近更新排序(最新优先)。
+Sort by most recently updated (newest first).
 
-如未指定 `--mode`,按模式分组(集中式 vs 分散式)。
+If `--mode` is not specified, group by mode (centralized vs. distributed).
 
-### 步骤 6:输出
+### Step 6: Output
 
 ```
-📋 ai-memory 项目清单 (共 4 个项目)
+📋 ai-memory Project List (4 projects)
 
-🗂️ 集中式 (3 个)
-  1. 视频项目
+🗂️ Centralized (3)
+  1. Video Project
      📁 /Users/.../persistent-document/bauto-video
-     📊 活跃 6 / 压缩 1 / 快照 2 | 21,000 tokens
-     📅 最近更新: 2026-06-21 (今天)
-     👤 初始化: 朱陶锋 (u-a3b2f1c9)
+     📊 Active 6 / Compressed 1 / Snapshots 2 | 21,000 tokens
+     📅 Last updated: 2026-06-21 (today)
+     👤 Initialized by: Zhu Taofeng (u-a3b2f1c9)
 
-  2. 助手项目
+  2. Assistant Project
      📁 /Users/.../persistent-document/cf-zs-rn
-     📊 活跃 3 / 压缩 0 / 快照 1 | 5,200 tokens
-     📅 最近更新: 2026-06-18 (3 天前)
-     👤 初始化: 朱陶锋 (u-a3b2f1c9)
+     📊 Active 3 / Compressed 0 / Snapshots 1 | 5,200 tokens
+     📅 Last updated: 2026-06-18 (3 days ago)
+     👤 Initialized by: Zhu Taofeng (u-a3b2f1c9)
 
-  3. 卡片项目
+  3. Card Project
      📁 /Users/.../persistent-document/baby-card-app
-     📊 活跃 12 / 压缩 2 / 快照 4 | 45,000 tokens
-     ⚠️ 最近更新: 2026-05-10 (42 天前,可能已停滞)
-     👤 初始化: 朱陶锋 (u-a3b2f1c9)
+     📊 Active 12 / Compressed 2 / Snapshots 4 | 45,000 tokens
+     ⚠️ Last updated: 2026-05-10 (42 days ago, possibly stale)
+     👤 Initialized by: Zhu Taofeng (u-a3b2f1c9)
 
-📂 分散式 (1 个)
+📂 Distributed (1)
   4. open-source-tool
      📁 /Users/.../projects/open-source-tool/.ai-memory
-     📊 活跃 2 / 压缩 0 / 快照 0 | 1,800 tokens
-     📅 最近更新: 2026-06-20 (昨天)
-     👤 初始化: 朱陶锋 (u-a3b2f1c9)
+     📊 Active 2 / Compressed 0 / Snapshots 0 | 1,800 tokens
+     📅 Last updated: 2026-06-20 (yesterday)
+     👤 Initialized by: Zhu Taofeng (u-a3b2f1c9)
 
-💡 提示
-  - 卡片项目 42 天未更新,考虑 /aim-archive 归档
-  - 总计 73,000 tokens 在所有项目中
+💡 Tips
+  - Card Project not updated in 42 days — consider /aim-archive
+  - Total across all projects: 73,000 tokens
 ```
 
-## 边界情况
+## Edge Cases
 
-### 情况 A:完全没有初始化的项目
+### Case A: No initialized projects at all
 
 ```
-📋 ai-memory 项目清单
+📋 ai-memory Project List
 
-尚未初始化任何项目。
-运行 /aim-init <项目名> 开始。
+No projects initialized yet.
+Run /aim-init <project-name> to get started.
 ```
 
-### 情况 B:某项目目录中 INDEX.yaml 损坏
+### Case B: INDEX.yaml in a project directory is corrupted
 
-- 在列表中跳过该项目。
-- 末尾提示:`⚠️ 项目 [xxx] 的 INDEX.yaml 损坏,建议运行 /aim-rebuild`。
+- Skip that project in the listing.
+- Note at the end: `⚠️ Project [xxx] has a corrupted INDEX.yaml — suggest running /aim-rebuild.`
 
-### 情况 C:扫描发现不在 projects.json 注册表中的项目
+### Case C: Scan discovers projects not in the projects.json registry
 
-- 自动加入注册表(集中式模式)。
-- 输出中标注:`(本次新发现,已加入注册表)`。
+- Automatically add to the registry (centralized mode).
+- Mark in output: `(newly discovered, added to registry)`.
 
-### 情况 D:文件系统扫描很慢(home 目录巨大)
+### Case D: Filesystem scan is slow (large home directory)
 
-- 每个 top-level 目录 5 秒超时。
-- 提示:`扫描超时,可能遗漏部分分散式项目`。
+- 5-second timeout per top-level directory.
+- Note: `Scan timed out — some distributed projects may have been missed.`
 
-### 情况 E:分散式项目的 `.ai-memory/` 存在但 INDEX.yaml 缺失
+### Case E: A distributed project has `.ai-memory/` but no INDEX.yaml
 
-- 看起来是半初始化项目。
-- 提示:`⚠️ [xxx] 有 .ai-memory/ 但无 INDEX.yaml,可能初始化未完成`。
+- Appears to be a half-initialized project.
+- Note: `⚠️ [xxx] has .ai-memory/ but no INDEX.yaml — initialization may be incomplete.`
 
-## 输出风格
+## Output Style
 
-- 全程使用中文。
-- 按模式分组并使用章节标题(🗂️ 集中式 / 📂 分散式)。
-- 每个项目:序号、名称、路径、统计、日期、所有者。
-- 对陈旧(>30 天)或损坏的项目用 ⚠️。
-- 长路径用 `...` 中间截断。
-- 末尾始终显示 token 总和。
+- All labels in English.
+- Group by mode with section headings (🗂️ Centralized / 📂 Distributed).
+- Per project: number, name, path, stats, date, owner.
+- Use ⚠️ for stale (>30 days) or corrupted projects.
+- Truncate long paths with `...` in the middle.
+- Always show the total token count at the end.
 
-## 软沙盒行为
+## Soft Sandbox Behavior
 
-- 公共命令 — 无限制。
-- 显示所有项目,不论初始化者是谁(这是机器级清单)。
+- Public command — no restrictions.
+- Shows all projects regardless of who initialized them (this is a machine-level inventory).
 
-## 参考
+## References
 
-- 读取 `~/.claude/ai-memory/projects.json` 获取集中式根。
-- 配套命令:`/aim-init`、`/aim-status`、`/aim-uninit`
+- Reads `~/.claude/ai-memory/projects.json` for centralized roots.
+- Companion commands: `/aim-init`, `/aim-status`, `/aim-uninit`

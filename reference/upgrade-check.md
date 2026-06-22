@@ -1,39 +1,39 @@
-# 升级检查机制
+# Upgrade Check Mechanism
 
-## 概览
+## Overview
 
-ai-memory 会检查 GitHub 是否有更新版本,并在有新版本时告知用户。该检查是**非阻塞**且**克制**的 — 绝不自动更新,每次会话最多提示一次。
+ai-memory checks GitHub for newer versions and notifies users when updates are available. The check is **non-blocking** and **unobtrusive** — it never auto-updates, and prompts at most once per session.
 
-## 何时运行
+## When It Runs
 
-升级检查在 Claude Code 加载 Skill 时触发(即用户在已注入 ai-memory 的 CLAUDE.md 规则的项目中开启新会话时)。
+The upgrade check triggers when Claude Code loads the Skill (i.e., when a user starts a new session in a project whose CLAUDE.md rules have the ai-memory injection).
 
-为避免每次会话都访问 GitHub:
+To avoid hitting GitHub on every session:
 
 ```
-读取 ~/.claude/ai-memory/last-version-check.json
+Read ~/.claude/ai-memory/last-version-check.json
 ```
 
-如果文件年龄 < 24 小时:跳过检查,使用缓存结果。
-如果文件年龄 >= 24 小时或文件缺失:执行检查。
+If the file is less than 24 hours old: skip the check and use the cached result.
+If the file is 24+ hours old or missing: perform the check.
 
-## 如何检查
+## How It Checks
 
-使用轻量级 GitHub API 调用:
+Uses a lightweight GitHub API call:
 
 ```
 curl -sS https://api.github.com/repos/shmxybfq/ai-memory/releases/latest
 ```
 
-解析响应中的 `tag_name`(如 `v0.2.0`)。
+Parses the `tag_name` from the response (e.g., `v0.2.0`).
 
-与本地版本(取自 `SKILL.md` frontmatter 的 `version: 0.1.0`)比较。
+Compares it against the local version (taken from the `version: 0.1.0` field in `SKILL.md` frontmatter).
 
-**离线处理**:如果 curl 失败(超时、无网络),静默跳过。版本检查绝不报错。
+**Offline handling:** If curl fails (timeout, no network), the check is silently skipped. Version checks never produce errors.
 
-## 存储什么
+## What Is Stored
 
-缓存文件:`~/.claude/ai-memory/last-version-check.json`
+Cache file: `~/.claude/ai-memory/last-version-check.json`
 
 ```json
 {
@@ -46,70 +46,70 @@ curl -sS https://api.github.com/repos/shmxybfq/ai-memory/releases/latest
 }
 ```
 
-`user_dismissed` 数组记录用户已看过并忽略的版本,避免就同一版本重复打扰。
+The `user_dismissed` array tracks versions the user has already seen and dismissed, preventing repeated notifications for the same version.
 
-## 如何提示
+## How It Notifies
 
-如果 `latest_version > current_version` 且 `latest_version` 不在 `user_dismissed` 中:
+If `latest_version > current_version` and `latest_version` is not in `user_dismissed`:
 
-在会话开始时(用户首次交互之后,不要作为首条消息)向用户展示:
+Display the following to the user at session start (after the user's first interaction, not as the very first message):
 
 ```
-ℹ️ ai-memory 有新版本
+ℹ️ ai-memory has a new version
 
-当前: 0.1.0
-最新: 0.2.0
+Current: 0.1.0
+Latest:  0.2.0
 
-主要更新:
-  - 三阶段压缩流水线(分析 → 合并 → 校验)
-  - 跨工具支持(MCP 集成)
-  - 性能优化
+Key updates:
+  - Three-stage compression pipeline (analyze → merge → verify)
+  - Cross-tool support (MCP integration)
+  - Performance improvements
 
-如何升级:
+To upgrade:
   cd ~/.claude/skills/ai-memory && git pull
-  (或重新运行 install.sh)
+  (or re-run install.sh)
 
-本次会话不再提示。如需永久跳过此版本:
-  运行 /aim-identity --skip-version 0.2.0
+This notification will not appear again this session. To permanently skip this version:
+  run /aim-identity --skip-version 0.2.0
 ```
 
-把 `latest_version` 加入 `user_dismissed`,这样在出现更新版本前不会再次显示。
+Adds `latest_version` to `user_dismissed` so it will not be shown again until a newer version is released.
 
-## 行为规则
+## Behavior Rules
 
-1. **绝不自动更新。** 仅告知;升级命令由用户自己执行。
-2. **绝不阻塞。** 如果 GitHub 不可达,静默失败。
-3. **绝不打扰。** 每个版本每台机器仅提示一次。
-4. **绝不在任务中途打断。** 仅在会话开始时显示,或用户通过 `/aim-identity` 或 `/aim-help` 显式询问时。
-5. **始终提供升级命令。** 不要让用户到处找。
+1. **Never auto-update.** Only notify; the user runs upgrade commands themselves.
+2. **Never block.** If GitHub is unreachable, fail silently.
+3. **Never pester.** Each version is shown at most once per machine.
+4. **Never interrupt mid-task.** Only shown at session start, or when the user explicitly asks via `/aim-identity` or `/aim-help`.
+5. **Always provide upgrade commands.** Don't make users hunt for them.
 
-## 手动触发
+## Manual Trigger
 
-用户可手动检查:
+Users can manually check for updates:
 
 ```
 /aim-identity --check-updates
 ```
 
-强制重新检查(绕过 24h 缓存)并显示结果。
+This forces a re-check (bypassing the 24-hour cache) and displays the result.
 
-## install.sh 交互
+## install.sh Interaction
 
-当 install.sh 运行时,应:
-1. 从 GitHub 拉取最新。
-2. 更新 `~/.claude/ai-memory/last-version-check.json`,把已安装版本同时作为 `current` 和 `latest`。
-3. 清除新安装版本的 `user_dismissed`。
+When install.sh runs, it should:
+1. Pull the latest from GitHub.
+2. Update `~/.claude/ai-memory/last-version-check.json`, setting the newly installed version as both `current` and `latest`.
+3. Clear `user_dismissed` for the newly installed version.
 
-这确保刚装好的升级不会立即提示"有新版本"(刚装的就是这个版本)。
+This ensures a fresh installation does not immediately show a "new version available" notification (since the installed version IS the latest).
 
-## 隐私
+## Privacy
 
-升级检查仅向 GitHub 公开 API 发送 GET 请求。无用户数据、无遥测、无标识符。缓存文件仅本地。
+The upgrade check sends a GET request only to the GitHub public API. No user data, no telemetry, no identifiers. The cache file is local only.
 
-如果用户不希望做任何网络检查,可设置:
+If users prefer to opt out of all network checks entirely, they can create:
 
 ```
 ~/.claude/ai-memory/no-auto-check
 ```
 
-(任何以该名称存在的文件都会完全禁用检查)
+(The mere existence of a file with this name will disable checks entirely.)

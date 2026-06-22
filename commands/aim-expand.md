@@ -1,187 +1,187 @@
 ---
 name: aim-expand
-description: 反向搜索快照,获取某压缩主题的原始细节。读取流入压缩文件的归档文档。只读检索。
+description: Reverse-search snapshots to retrieve original details from a compressed topic. Reads archived documents that were folded into a compressed file. Read-only retrieval.
 ---
 
-# /aim-expand — 检索归档细节
+# /aim-expand — Retrieve Archived Details
 
-## 用途
+## Purpose
 
-`/aim-compress` 之后,源文档被归档到 `snapshots/`。压缩文档保留整合视图,但细节会丢失。`/aim-expand` 让你在需要时拉回原始细节。
+After `/aim-compress`, source documents are archived into `snapshots/`. The compressed document preserves an integrated view, but details are lost. `/aim-expand` lets you pull back the original details when you need them.
 
-典型用法:
-- 压缩文档说"我们曾考虑方案 A 和 B,选了 B"
-- 你想知道*为什么* A 被排除
-- `/aim-expand <compressed_doc_id> topic=方案 A 对比` → 从快照取回原始讨论
+Typical usage:
+- The compressed document says "We considered approach A and B, and chose B"
+- You want to know *why* A was rejected
+- `/aim-expand <compressed_doc_id> topic=approach A comparison` -> retrieves the original discussion from snapshots
 
-**只读。** 绝不修改快照或压缩文档。
+**Read-only.** Never modifies snapshots or compressed documents.
 
-## 用法
+## Usage
 
 ```
 /aim-expand <doc_id|filename> [--topic <keyword>] [--date <YYYY-MM-DD>]
 ```
 
-- `doc_id` 或 filename:要展开哪个压缩文档(或读哪个快照)。
-- `--topic`:在快照中搜索的关键词(如 `认证`、`路由`)。
-- `--date`:限定到某个快照日期。
+- `doc_id` or filename: which compressed document to expand (or which snapshot to read).
+- `--topic`: keyword to search within snapshots (e.g., `auth`, `routing`).
+- `--date`: restrict to a specific snapshot date.
 
-如果当前没有压缩文档,`/aim-expand` 会列出可用快照。
+If no compressed document exists yet, `/aim-expand` lists available snapshots.
 
-## 前置条件
+## Prerequisites
 
-- 项目已初始化。
-- 至少存在一个快照,或一个含归档区的压缩文档。
+- Project is initialized.
+- At least one snapshot exists, or a compressed document with an archive section.
 
-## 流程
+## Workflow
 
-### 步骤 1:解析当前项目
+### Step 1: Resolve Current Project
 
-同 `/aim-status` 步骤 1。
+Same as `/aim-status` Step 1.
 
-### 步骤 2:确定目标
+### Step 2: Identify the Target
 
-如果提供了 `<doc_id>` 参数:
-- 如果匹配当前压缩文档:目标 = 压缩文档 + 流入它的所有快照。
-- 如果匹配某快照文件:目标 = 该单快照。
+If a `<doc_id>` argument is provided:
+- If it matches the current compressed document: target = compressed document + all snapshots that flowed into it.
+- If it matches a snapshot file: target = that single snapshot.
 
-如果无参数:
-- 列出所有快照,含日期和简要内容摘要。
-- 询问用户展开哪个。
+If no argument is provided:
+- List all snapshots with dates and brief content summaries.
+- Ask the user which one to expand.
 
-### 步骤 3:识别快照池
+### Step 3: Identify the Snapshot Pool
 
-针对压缩文档目标:
-1. 读取 `INDEX.yaml` 的 `compressed[0].sources`(如已记录)— 源 doc_id 显式列表。
-2. 如未记录(较早的压缩运行),回退:扫描所有 `snapshots/*/`,按与压缩文档 `created` 的日期邻近度筛选。
+For a compressed document target:
+1. Read `INDEX.yaml`'s `compressed[0].sources` (if recorded) — an explicit list of source doc_ids.
+2. If not recorded (earlier compression runs), fall back: scan all `snapshots/*/`, filter by date proximity to the compressed document's `created` date.
 
-针对单快照目标:就是那一个文件。
+For a single snapshot target: just that one file.
 
-### 步骤 4:按主题过滤(若提供 --topic)
+### Step 4: Filter by Topic (if --topic provided)
 
-对池中每个快照文件:
-1. 读取内容。
-2. 搜索主题关键词(大小写不敏感,也匹配中文变体)。
-3. 打分相关性(匹配次数、在文档中的位置)。
-4. 按相关性排序。
+For each snapshot file in the pool:
+1. Read the content.
+2. Search for the topic keyword (case-insensitive).
+3. Score relevance (match count, position within the document).
+4. Sort by relevance.
 
-如未提供 `--topic`:包含池中所有快照。
+If `--topic` is not provided: include all snapshots in the pool.
 
-### 步骤 5:提取相关章节
+### Step 5: Extract Relevant Sections
 
-对每个相关快照:
-- 提取包含主题的段落/章节。
-- 保留原格式(HTML)。
-- 标注来源:`<snapshot_date>/<file>.html`、原始标题、原始作者。
+For each relevant snapshot:
+- Extract paragraphs/sections containing the topic.
+- Preserve the original formatting (HTML).
+- Tag the source: `<snapshot_date>/<file>.html`, original title, original author.
 
-### 步骤 6:同时检查压缩归档区
+### Step 6: Also Check the Compressed Archive Section
 
-压缩文档自身有归档区(已弃用内容)。也在这里搜索 — 有时你要的细节在那里而非快照中。
+The compressed document itself has an archive section (deprecated content). Search there as well — sometimes the details you need are there rather than in the snapshots.
 
-### 步骤 7:输出
+### Step 7: Output
 
-格式化为易读视图:
-
-```
-🔍 展开: 方案 A 对比
-
-📌 来源(共 3 篇)
-
-━━━ 1. 认证模块设计 (2026-06-21) ━━━
-作者: 朱陶锋 (u-a3b2f1c9)
-原文件: snapshots/2026-06-21/2026-06-21-auth-module-design.html
-
-[相关段落]
-我们考虑了三种认证方案:
-- 方案 A: Session + Cookie(传统,但移动端不友好)
-- 方案 B: JWT + Refresh(无状态,适合多端) ← 最终选择
-- 方案 C: OAuth 2.0 全套(过度设计,内部系统不需要)
-
-[决策记录]
-排除 A 的原因:移动端 cookie 处理复杂,且与 RN WebView 兼容性差。
-
-━━━ 2. 早期 API 设计 (2026-06-15) ━━━
-作者: 朱陶锋 (u-a3b2f1c9)
-原文件: snapshots/2026-06-21/2026-06-15-early-api.html
-
-[相关段落]
-... (其他相关内容)
-
-━━━ 3. [归档区] 旧版认证设计 (2026-05-20) ━━━
-出处: 压缩文档归档区
-状态: deprecated (被 2026-06-21 替代)
-
-[相关段落]
-...(已归档的旧版方案)
-
-💡 提示
-  - 这些是原始内容,可能与压缩文档表述不同
-  - 如需引用,请使用原 doc_id 标注来源
-```
-
-### 步骤 8:可选后续
-
-在末尾提供下一步选项:
+Format as a readable view:
 
 ```
-下一步:
-  - /aim-expand <doc_id> --topic <其他关键词>  查其他主题
-  - /aim-status                              返回项目状态
+🔍 Expand: Approach A comparison
+
+📌 Sources found (3 total)
+
+━━━ 1. Authentication Module Design (2026-06-21) ━━━
+Author: Zhu Taofeng (u-a3b2f1c9)
+Original file: snapshots/2026-06-21/2026-06-21-auth-module-design.html
+
+[Relevant section]
+We considered three authentication approaches:
+- Approach A: Session + Cookie (traditional, but mobile-unfriendly)
+- Approach B: JWT + Refresh (stateless, good for multi-platform) ← Final choice
+- Approach C: Full OAuth 2.0 (over-engineered, unnecessary for internal systems)
+
+[Decision record]
+Reason for rejecting A: mobile cookie handling is complex, and compatibility with RN WebView is poor.
+
+━━━ 2. Early API Design (2026-06-15) ━━━
+Author: Zhu Taofeng (u-a3b2f1c9)
+Original file: snapshots/2026-06-21/2026-06-15-early-api.html
+
+[Relevant section]
+... (other relevant content)
+
+━━━ 3. [Archive Section] Legacy Authentication Design (2026-05-20) ━━━
+Source: Compressed document archive section
+Status: deprecated (superseded by 2026-06-21)
+
+[Relevant section]
+... (archived legacy approach)
+
+💡 Tips
+  - This is original content and may differ from the compressed document's wording
+  - When citing, use the original doc_id to tag the source
 ```
 
-## 边界情况
+### Step 8: Optional Follow-up
 
-### 情况 A:无快照存在(项目从未压缩)
-
-```
-尚未有快照。运行 /aim-compress 后才会产生归档。
-```
-
-### 情况 B:在任何快照中都找不到主题
+Offer next-step options at the end:
 
 ```
-未在快照中找到与「xxx」相关的内容。
-
-建议:
-  - 尝试更宽泛的关键词
-  - 列出所有快照: /aim-expand(不带参数)
+Next steps
+  - /aim-expand <doc_id> --topic <other keyword>     Search for another topic
+  - /aim-status                                       Return to project status
 ```
 
-### 情况 C:INDEX 中引用的快照文件在磁盘上缺失
+## Edge Cases
 
-- 跳过该文件。
-- 提示:`⚠️ 快照 xxx 已从磁盘删除,无法展开`。
+### Case A: No snapshots exist (project has never been compressed)
 
-### 情况 D:压缩文档无归档区(首次压缩,尚无弃用内容)
+```
+No snapshots yet. Archives are only created after running /aim-compress.
+```
 
-- 只搜索快照。
-- 提示:`当前压缩文档无归档区内容`。
+### Case B: Topic not found in any snapshot
 
-### 情况 E:匹配的快照很多(>10)
+```
+No content related to "xxx" found in snapshots.
 
-- 按相关性显示前 5 篇。
-- 提示:`找到 N 篇相关,显示前 5 篇。如需全部,使用 --limit all`。
+Suggestions:
+  - Try broader keywords
+  - List all snapshots: /aim-expand (no arguments)
+```
 
-### 情况 F:跨日期展开(用户想比较不同次压缩)
+### Case C: Snapshot file referenced in INDEX is missing from disk
 
-- 如果指定了 `--date`,限定到该日期。
-- 如果用户想要比较模式:`/aim-expand <doc> --topic xxx --compare-dates 2026-05-01,2026-06-01` → 并排显示两个快照中同一主题。
+- Skip that file.
+- Warn: `⚠️ Snapshot xxx has been deleted from disk and cannot be expanded`.
 
-## 输出风格
+### Case D: Compressed document has no archive section (first compression, no deprecated content yet)
 
-- 全程使用中文。
-- 用水平线(━━━)分隔来源。
-- 始终显示:作者、原文件名、快照日期。
-- 提取章节内保留原 HTML 格式。
-- 用清晰的 `[相关段落]` 标记引用旧文。
-- 末尾给出 💡 提示 和后续建议。
+- Only search snapshots.
+- Note: `The current compressed document has no archive section content`.
 
-## 软沙盒行为
+### Case E: Many matching snapshots (>10)
 
-- 公共命令 — 无限制。
-- 可读取任何所有者的快照(快照是项目历史,天然公开)。
+- Show the top 5 by relevance.
+- Note: `Found N relevant snapshots, showing the top 5. Use --limit all to see all.`
 
-## 参考
+### Case F: Cross-date expansion (user wants to compare different compressions)
 
-- 配套命令:`/aim-compress`、`/aim-status`、`/aim-archive`
-- 概念:`reference/document-lifecycle.md`
+- If `--date` is specified, restrict to that date.
+- If the user wants a comparison mode: `/aim-expand <doc> --topic xxx --compare-dates 2026-05-01,2026-06-01` -> display the same topic side-by-side from both snapshots.
+
+## Output Style
+
+- Use English throughout.
+- Use horizontal rules (━━━) to separate sources.
+- Always display: author, original filename, snapshot date.
+- Preserve original HTML formatting within extracted sections.
+- Use clear `[Relevant section]` markers when quoting from archived documents.
+- Include 💡 tips and follow-up suggestions at the end.
+
+## Soft Sandbox Behavior
+
+- Public command — no restrictions.
+- Can read any snapshot regardless of owner (snapshots are project history, inherently public).
+
+## References
+
+- Companion commands: `/aim-compress`, `/aim-status`, `/aim-archive`
+- Concept: `reference/document-lifecycle.md`
