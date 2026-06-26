@@ -33,15 +33,14 @@ If no `instructions` are provided: interactively prompt the user.
 
 ## Prerequisites
 
-- Project is initialized.
-- Target document exists in the `active` list.
-- User identity is established.
+Default (see SKILL.md §G3). Additional:
+- Target document exists in the `active` list
 
 ## Workflow
 
 ### Steps 1-4: Parse project, identity, document, and sandbox check
 
-Same as `/aim-append` steps 1-4. Cross-user confirmation applies.
+Steps 1-2 follow SKILL.md §G1 (project) + §G2 (identity). Steps 3-4: resolve target document and sandbox check, same as `/aim-append` steps 3-4. Cross-user confirmation applies.
 
 ### Step 5: Snapshot Backup (Always Executed)
 
@@ -330,17 +329,16 @@ Next Steps
 
 ## Output Style
 
-- Use English throughout.
+_Defaults from SKILL.md §G4 apply._ Additional:
+
 - Display diffs in monospaced code blocks.
 - Always display the backup path.
 - Cross-user edits: display cross-user marker prominently.
 - Emoji usage: specific emoji reserved for consistent visual markers.
 
-## Soft Sandbox Behavior
+## Deviations from Global Rules
 
-- Own documents: free to edit, snapshot backup only.
-- Others' documents: explicit confirmation required every time.
-- Compressed documents: direct editing is prohibited.
+- Compressed documents: direct editing is prohibited (use `/aim-add` + `/aim-compress` instead).
 
 ## References
 

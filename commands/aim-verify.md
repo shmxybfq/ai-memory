@@ -33,14 +33,13 @@ Typical use cases:
 
 ## Prerequisites
 
-- Project must be initialized.
-- INDEX.yaml must be parsable (otherwise suggest `/aim-rebuild` first).
+Default (see SKILL.md §G3). Additional: (none)
 
 ## Workflow
 
 ### Step 1: Resolve the current project
 
-Same as `/aim-status` Step 1.
+Follow SKILL.md §G1. Store as `INDEX`.
 
 ### Step 2: Parse INDEX.yaml
 
@@ -211,17 +210,18 @@ Back up INDEX.yaml before writing (same as `/aim-rebuild`).
 
 ## Output Style
 
-- All labels in English.
+_Defaults from SKILL.md §G4 apply._ Additional:
+
 - Severity emoji: 🔴 🟠 🟡 🟢
 - Issue codes in `[UPPER_SNAKE_CASE]` for easy grep.
 - Align issue numbers with descriptions.
 - Summary counts always shown first.
 - Truncate long file lists with `... and N more`, and offer a `--detail` option.
 
-## Soft Sandbox Behavior
+## Deviations from Global Rules
 
-- `/aim-verify` is a **public command** — no sandbox restrictions.
-- Read-only by default; `--fix` mode only touches the INDEX.yaml cache (not content), and is considered safe for any user.
+- Public command, no sandbox restrictions (G5 does not apply).
+- `--fix` mode only touches INDEX.yaml cache (not content), considered safe for any user.
 
 ## References
 

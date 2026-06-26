@@ -30,14 +30,14 @@ If no compressed document exists yet, `/aim-expand` lists available snapshots.
 
 ## Prerequisites
 
-- Project is initialized.
-- At least one snapshot exists, or a compressed document with an archive section.
+Default (see SKILL.md §G3). Additional:
+- At least one snapshot exists, or a compressed document with an archive section
 
 ## Workflow
 
 ### Step 1: Resolve Current Project
 
-Same as `/aim-status` Step 1.
+Follow SKILL.md §G1. Store as `INDEX`.
 
 ### Step 2: Identify the Target
 
@@ -169,16 +169,17 @@ Suggestions:
 
 ## Output Style
 
-- Use English throughout.
+_Defaults from SKILL.md §G4 apply._ Additional:
+
 - Use horizontal rules (━━━) to separate sources.
 - Always display: author, original filename, snapshot date.
 - Preserve original HTML formatting within extracted sections.
 - Use clear `[Relevant section]` markers when quoting from archived documents.
 - Include 💡 tips and follow-up suggestions at the end.
 
-## Soft Sandbox Behavior
+## Deviations from Global Rules
 
-- Public command — no restrictions.
+- Public command, no sandbox restrictions (G5 does not apply).
 - Can read any snapshot regardless of owner (snapshots are project history, inherently public).
 
 ## References

@@ -25,32 +25,17 @@ No arguments. Always operates on the current project (resolved from cwd).
 
 ## Prerequisites
 
-- The project must already be initialized. Detection:
-  - Distributed mode: `<cwd>/.ai-memory/INDEX.yaml` exists
-  - Centralized mode: scan known root directories for an INDEX.yaml whose `root` matches cwd or a subdirectory relative to cwd
-- If not initialized: stop and prompt `Project not initialized. Run /aim-init first.`
+Default (see SKILL.md §G3). Additional: (none)
 
 ## Workflow
 
 ### Step 1: Resolve the current project
 
-Same resolution logic as `/aim-add` Step 1:
-
-1. Check cwd.
-2. Find the project:
-   - **Distributed**: `<cwd>/.ai-memory/INDEX.yaml`
-   - **Centralized**: scan `~/Desktop/persistent-document/` and root directories listed in `~/.claude/ai-memory/projects.json` for subdirectories containing INDEX.yaml
-3. If multiple matches: ask the user which one.
-4. If no match: error and stop.
-
-Read INDEX.yaml. If parsing fails, display the error (see Edge Case A).
+Follow SKILL.md §G1. Store as `INDEX`. If parsing fails, display the error (see Edge Case A).
 
 ### Step 2: Resolve user identity
 
-Read `~/.claude/ai-memory/identity.json`.
-
-- If it exists: record the current user (used to group "your documents" in output).
-- If missing: continue, but warn `User identity not initialized — cannot distinguish personal vs. others' documents.`
+Follow SKILL.md §G2 with **deviation**: missing identity only warns (do not stop) — `User identity not initialized — cannot distinguish personal vs. others' documents.` Continue execution.
 
 ### Step 3: Inventory active documents
 
@@ -235,10 +220,10 @@ Append a per-document table after the summary:
 - Consistent emoji usage: 📊 📋 👤 📑 📈 ⚠️ 🔄 📝 💡 🚫
 - No trailing summary paragraph — keep it scannable.
 
-## Soft Sandbox Behavior
+## Deviations from Global Rules
 
-- `/aim-status` is a **public command** — no sandbox restrictions.
-- Displays all documents regardless of owner.
+- G2 (User Identity): warn-only on missing identity, do not stop (continue execution, cannot distinguish own vs. others' documents).
+- G5 (Soft Sandbox): public command, no sandbox restrictions. Displays all documents regardless of owner.
 - Contributor names shown as plain text (no PII beyond what is already recorded in INDEX.yaml).
 
 ## References

@@ -4,11 +4,19 @@ All notable changes to ai-memory are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/), and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [0.1.1] — 2026-06-26
+
+### Changed
+
+- **Refactor: extract common command rules to SKILL.md Global Rules (G1-G5).** Prerequisites, Step 1 (Resolve Project), Step 2 (Resolve Identity), Soft Sandbox Behavior, and Output Style defaults are now defined once in SKILL.md. The 9 affected commands (`aim-add`, `aim-append`, `aim-edit`, `aim-archive`, `aim-compress`, `aim-status`, `aim-verify`, `aim-rebuild`, `aim-expand`) reference these rules and declare command-specific deviations in a new `## Deviations from Global Rules` section. **No behavioral change** — same semantics, less duplication, single-source maintenance.
+
+- Translated all command documents, SKILL.md, templates, install.sh, CHANGELOG, and DEV-PROGRESS from Chinese back to English for global audience accessibility. README.zh-CN.md preserved as Chinese version. All functional content (6-layer quality framework, command registration mechanism, etc.) retained.
+
 ## [Unreleased]
 
 ### Changed
 
-- Translated all command documents, SKILL.md, templates, install.sh, CHANGELOG, and DEV-PROGRESS from Chinese back to English for global audience accessibility. README.zh-CN.md preserved as Chinese version. All functional content (6-layer quality framework, command registration mechanism, etc.) retained.
+_(none yet)_
 
 ## [0.1.0] — 2026-06-21 (MVP)
 

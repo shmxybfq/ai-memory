@@ -34,20 +34,20 @@ No arguments: compress all active documents.
 
 ## Prerequisites
 
-- Project is initialized.
-- At least 1 active document (warn if < 3, allow override).
-- INDEX.yaml is consistent (suggest `/aim-verify` first if uncertain).
-- User has write permission to the project root directory.
+Default (see SKILL.md §G3). Additional:
+- At least 1 active document (warn if < 3, allow override)
+- INDEX.yaml is consistent (suggest `/aim-verify` first if uncertain)
+- User has write permission to the project root directory
 
 ## Workflow
 
 ### Step 1: Resolve Current Project
 
-Same as `/aim-add` Step 1.
+Follow SKILL.md §G1. Store as `INDEX`.
 
 ### Step 2: Resolve User Identity
 
-Read `~/.claude/ai-memory/identity.json`. Required — compression records the operator.
+Follow SKILL.md §G2. Store as `USER`. (Compression records the operator.)
 
 ### Step 3: Select Source Documents
 
@@ -354,24 +354,23 @@ Next Steps
 
 ## Output Style
 
-- User-facing information in English.
+_Defaults from SKILL.md §G4 apply._ Additional:
+
 - Display token counts before and after compression.
 - Always show the snapshot path so the user knows where originals went.
 - Emoji: use sparingly for section headers.
 - Dry-run mode: display the proposed outline (chapter titles + where each document lands), no writes.
 
-## Soft Sandbox Behavior
+## Deviations from Global Rules
 
-- `/aim-compress` is **special**: it modifies the shared compressed document (`owner=__project__`).
-- Single-user projects: no additional confirmation beyond the standard flow.
-- Multi-user projects: if any source document's owner differs from the current user, prompt:
+- Compress involves the `__project__` document (covered by G5 default — always confirm).
+- Multi-user projects: explicit cross-user confirmation prompt listing affected users:
   ```
   This compression includes documents from other users:
     - Zhang San (u-b1c2d3e4): 2 docs
     - Li Si (u-c3d4e5f6): 1 doc
   Cross-user compression of shared documents. Confirm? (Y/n)
   ```
-- After confirmation, no caching (per project rules).
 
 ## MVP Limitations (vs Full v0.2)
 

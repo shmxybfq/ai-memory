@@ -29,14 +29,15 @@ Typical use cases:
 
 ## Prerequisites
 
-- Project is initialized (INDEX.yaml has existed before; even if corrupted, the project directory structure must be intact).
-- HTML files must have valid `<!-- aim:... -->` metadata headers.
+Default (see SKILL.md §G3). Additional:
+- HTML files must have valid `<!-- aim:... -->` metadata headers
+- INDEX.yaml may be corrupted (rebuild is the recovery path)
 
 ## Workflow
 
 ### Step 1: Resolve the current project
 
-Same as `/aim-status` Step 1. If possible, read the existing INDEX.yaml (to preserve project name, mode, root path).
+Follow SKILL.md §G1. If possible, read the existing INDEX.yaml (to preserve project name, mode, root path).
 
 ### Step 2: Back up existing INDEX.yaml
 
@@ -248,17 +249,16 @@ If not dry-run, or user confirmed:
 
 ## Output Style
 
-- User-facing text in English.
-- Show full file paths.
+_Defaults from SKILL.md §G4 apply._ Additional:
+
 - Consistent emoji usage: ✅ 📋 📁 ⚠️ 📝 🔄
 - Align columns in dry-run diff for readability.
 - Always show the backup path so the user can manually roll back if needed.
 
-## Soft Sandbox Behavior
+## Deviations from Global Rules
 
-- `/aim-rebuild` is a **public command** — no sandbox restrictions.
-- Does not modify HTML files, only INDEX.yaml.
-- Any user can safely run it on a project (this is cache rebuild, not content change).
+- Public command, no sandbox restrictions (G5 does not apply).
+- Only modifies INDEX.yaml (cache rebuild), not HTML files. Any user can safely run it.
 
 ## References
 

@@ -1,7 +1,7 @@
 ---
 name: ai-memory
 description: Cross-session project memory layer for Claude Code. Provides document creation, compression, archiving, and retrieval capabilities. Install once, gain persistent project knowledge across sessions.
-version: 0.1.0
+version: 0.1.1
 author: ai-memory
 license: MIT
 ---
@@ -199,7 +199,7 @@ Claude Code has **two independent command systems**:
 
 ## Version
 
-Current: `0.1.0` (MVP)
+Current: `0.1.1`
 
 See CHANGELOG.md for version history. The Skill checks GitHub for updates on startup and prompts users when a new version is available.
 

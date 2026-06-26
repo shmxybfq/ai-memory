@@ -31,15 +31,14 @@ Use cases:
 
 ## Prerequisites
 
-- Project is initialized.
-- Target document exists in the `active` list.
-- User identity is established.
+Default (see SKILL.md §G3). Additional:
+- Target document exists in the `active` list
 
 ## Workflow
 
 ### Steps 1-4: Parse project, identity, document, sandbox check
 
-Same as `/aim-append` steps 1-4.
+Steps 1-2 follow SKILL.md §G1 (project) + §G2 (identity). Steps 3-4: resolve target document and sandbox check, same as `/aim-append` steps 3-4.
 
 For `/aim-archive`, cross-user confirmation applies (archiving another user's document affects project state).
 
@@ -166,16 +165,15 @@ Next steps
 
 ## Output Style
 
-- Use English throughout.
+_Defaults from SKILL.md §G4 apply._ Additional:
+
 - Always show the "from → to" path change.
 - Show before/after counts in project status.
-- Emojis: ✅ 📋 📁 📊 📝 ⚠️
+- Emoji: ✅ 📋 📁 📊 📝 ⚠️
 
-## Soft Sandbox Behavior
+## Deviations from Global Rules
 
-- Own documents: One confirmation, then free to archive.
-- Others' documents: Cross-user confirmation required every time.
-- Public/archived documents: Not applicable (already archived).
+- Own documents: requires one confirmation (G5 default is no confirmation, but archiving is a state-changing operation).
 
 ## References
 

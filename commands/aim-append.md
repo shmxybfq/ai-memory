@@ -26,19 +26,18 @@ Distinct from `/aim-edit` (modifies existing content) and `/aim-add` (creates a 
 
 ## Prerequisites
 
-- The project must be initialized.
-- The target document must exist (listed in `INDEX.yaml` under `active`, and the file must be present on disk).
-- The user identity must be established.
+Default (see SKILL.md §G3). Additional:
+- Target document must exist (listed in `INDEX.yaml` under `active`, file present on disk)
 
 ## Workflow
 
 ### Step 1: Resolve the Current Project
 
-Same as `/aim-add` Step 1.
+Follow SKILL.md §G1. Store as `INDEX`.
 
 ### Step 2: Resolve User Identity
 
-Read `~/.claude/ai-memory/identity.json`. Required.
+Follow SKILL.md §G2. Store as `USER`.
 
 ### Step 3: Resolve the Target Document
 
@@ -357,16 +356,15 @@ Next steps
 
 ## Output Style
 
-- Use English throughout.
+_Defaults from SKILL.md §G4 apply._ Additional:
+
 - Display the version number increment explicitly.
 - For cross-user operations, always display the cross-user annotation in the output.
 - Emoji: ✅ 📋 📁 📝 ⚠️
 
-## Soft Sandbox Behavior
+## Deviations from Global Rules
 
-- Own documents: append freely, no confirmation required.
-- Another user's documents: explicit confirmation every time, no caching.
-- Compressed documents (`owner=__project__`): treated as cross-user for everyone (since they are shared).
+None.
 
 ## References
 
