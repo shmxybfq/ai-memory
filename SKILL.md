@@ -80,6 +80,61 @@ Each document has metadata in an HTML comment at the top:
 
 INDEX.yaml is a **rebuildable cache**, not the source of truth. The filesystem is the source of truth.
 
+## Global Rules for /aim-* Commands
+
+> These rules apply to all `/aim-*` commands unless a command explicitly declares a deviation in its own `## Deviations from Global Rules` section.
+
+### G1. Project Resolution
+
+```
+1. Check current working directory (cwd)
+2. Attempt to locate the project:
+   - Distributed mode: look for `<cwd>/.ai-memory/INDEX.yaml`
+   - Centralized mode: scan known root directories
+     (`~/Desktop/persistent-document/` and any registered in
+     `~/.claude/ai-memory/projects.json`), matching subdirectories
+     that contain INDEX.yaml and align with cwd
+3. If multiple match: ask the user which to use
+4. If none match: error `Project not initialized. Run /aim-init first.`, stop
+
+Read the resolved INDEX.yaml, store as `INDEX`.
+```
+
+Applies to: `aim-add`, `aim-append`, `aim-edit`, `aim-archive`, `aim-compress`, `aim-status`, `aim-verify`, `aim-rebuild`, `aim-expand`.
+
+### G2. User Identity Resolution
+
+```
+1. Read ~/.claude/ai-memory/identity.json
+2. If missing: error `User identity not initialized. Run /aim-init or /aim-identity.`, stop
+3. Store as USER (with .id and .name fields)
+```
+
+Applies to: same as G1, except `aim-status` warns instead of stopping (see its Deviations).
+
+### G3. Default Prerequisites
+
+- Project initialized (G1 succeeds)
+- INDEX.yaml is parsable (else suggest `/aim-rebuild`)
+
+### G4. Output Style Defaults
+
+- Use English throughout (code, paths, technical content included)
+- Display full file paths
+
+(Each command may declare its own emoji set and command-specific output elements.)
+
+### G5. Soft Sandbox Defaults
+
+- Documents owned by `USER.id`: free to modify, no confirmation
+- Documents owned by others: explicit confirmation every time, no caching
+- Documents owned by `__project__` (compressed doc): always confirm (treated as cross-user)
+- Commit message marks `[cross-user:from X to Y]` when cross-user operation is executed
+
+(Each command may declare its own deviations, e.g. `aim-rebuild` is a public command with no sandbox restrictions.)
+
+---
+
 ## Getting Started
 
 ### First-Time Setup

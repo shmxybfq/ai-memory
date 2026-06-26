@@ -20,29 +20,17 @@ Create a new HTML document in the project memory directory with proper metadata 
 
 ## Prerequisites
 
-- The project must already be initialized (has run `/aim-init`). Detection:
-  - Centralized mode: `<root>/<subdir>/INDEX.yaml` exists
-  - Distributed mode: `<cwd>/.ai-memory/INDEX.yaml` exists
-- If not initialized: stop and prompt: `Project not initialized. Please run /aim-init first.`
+Default (see SKILL.md §G3). Additional: (none)
 
 ## Workflow
 
 ### Step 1: Resolve Current Project
 
-1. Check the current working directory.
-2. Attempt to locate the project:
-   - **Distributed mode**: look for `<cwd>/.ai-memory/INDEX.yaml`
-   - **Centralized mode**: scan known root directories (`~/Desktop/persistent-document/` and any others registered in `~/.claude/ai-memory/projects.json`), matching subdirectories that contain an INDEX.yaml and align with the current cwd context.
-3. If multiple projects are found, ask the user which one to use.
-4. If no project is found: report error and stop.
-
-Read INDEX.yaml and store it as `INDEX`.
+Follow SKILL.md §G1. Store result as `INDEX`.
 
 ### Step 2: Resolve User Identity
 
-1. Read `~/.claude/ai-memory/identity.json`.
-2. If missing: report error `User identity not initialized. Please re-run /aim-init.`.
-3. Store it as `USER`.
+Follow SKILL.md §G2. Store result as `USER`.
 
 ### Step 3: Collect Document Content
 
@@ -448,18 +436,16 @@ Next steps
 - Attempt to parse the YAML
 - If parsing fails: `INDEX.yaml is corrupted. Please run /aim-rebuild to fix and retry.`
 
-## Soft Sandbox Behavior
-
-- Documents created by `/aim-add` are always owned by the current user (`owner = USER.id`).
-- No cross-user confirmation needed (new files always belong to the creator).
-- Document `permission` defaults to `private` (only the owner may modify without confirmation).
-
 ## Output Style
 
-- Use English throughout for user-facing output. Code, file paths, and technical content also in English.
-- Display full file paths
-- Use consistent emoji (checkmark, clipboard, folder, chart, lightbulb, pencil)
+_Defaults from SKILL.md §G4 apply._ Additional:
+
+- Emoji: ✅ 📋 📁 📊 💡 ✏️ (checkmark, clipboard, folder, chart, lightbulb, pencil)
 - Keep output concise but sufficiently informative
+
+## Deviations from Global Rules
+
+None.
 
 ## References
 
